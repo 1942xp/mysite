@@ -1,67 +1,154 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Birlikte İzleme</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Birlikte İzleme</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body {
+  margin: 0;
+  background: #111;
+  color: #fff;
+  font-family: Arial, sans-serif;
+}
+#login {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+input, button {
+  padding: 10px;
+  margin: 5px;
+  font-size: 16px;
+}
+#app {
+  display: none;
+}
+video {
+  width: 100%;
+  max-height: 60vh;
+  background: black;
+}
+#chat {
+  height: 25vh;
+  overflow-y: auto;
+  border-top: 1px solid #333;
+  padding: 10px;
+}
+#chat input {
+  width: 80%;
+}
+#chat button {
+  width: 18%;
+}
+.system {
+  color: #aaa;
+  font-size: 13px;
+}
+</style>
 </head>
-<body style="background:#111;color:#fff;text-align:center">
 
-  <h2>🎬 Birlikte İzleme</h2>
+<body>
 
-  <video id="video" width="95%" controls>
+<!-- GİRİŞ -->
+<div id="login">
+  <h2>🔐 Odaya Gir</h2>
+  <input id="roomPass" placeholder="Oda Şifresi">
+  <button onclick="enterRoom()">Giriş Yap</button>
+</div>
+
+<!-- UYGULAMA -->
+<div id="app">
+  <video id="video" controls>
     <source src="video.mp4" type="video/mp4">
   </video>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+  <div id="chat"></div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDBechvUwDzQ5gD8cdiDN_qSObt7RFKKUg",
-      authDomain: "birlikte-izleme.firebaseapp.com",
-      databaseURL: "https://birlikte-izleme-default-rtdb.firebaseio.com",
-      projectId: "birlikte-izleme",
-      storageBucket: "birlikte-izleme.firebasestorage.app",
-      messagingSenderId: "488401543618",
-      appId: "1:488401543618:web:e758697faebdeabb64765b"
-    };
+  <div style="display:flex;">
+    <input id="msg" placeholder="Mesaj yaz">
+    <button onclick="sendMsg()">Gönder</button>
+  </div>
+</div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-    const video = document.getElementById("video");
-    const roomRef = ref(db, "room1");
+const firebaseConfig = {
+  apiKey: "AIzaSyDBechvUwDzQ5gD8cdiDN_qSObt7RFKKUg",
+  authDomain: "birlikte-izleme.firebaseapp.com",
+  databaseURL: "https://birlikte-izleme-default-rtdb.firebaseio.com",
+  projectId: "birlikte-izleme",
+  storageBucket: "birlikte-izleme.firebasestorage.app",
+  messagingSenderId: "488401543618",
+  appId: "1:488401543618:web:e758697faebdeabb64765b"
+};
 
-    // VIDEO OYNATILDI
-    video.addEventListener("play", () => {
-      set(roomRef, {
-        playing: true,
-        time: video.currentTime
-      });
-    });
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-    // VIDEO DURDU
-    video.addEventListener("pause", () => {
-      set(roomRef, {
-        playing: false,
-        time: video.currentTime
-      });
-    });
+const video = document.getElementById("video");
+let isAdmin = false;
 
-    // FIREBASE'DEN DİNLE
-    onValue(roomRef, (snap) => {
-      const data = snap.val();
-      if (!data) return;
+window.enterRoom = () => {
+  const pass = roomPass.value;
+  if (!pass) return;
 
-      if (Math.abs(video.currentTime - data.time) > 0.5) {
-        video.currentTime = data.time;
-      }
+  const adminRef = ref(db, "admin");
 
-      if (data.playing && video.paused) video.play();
-      if (!data.playing && !video.paused) video.pause();
-    });
-  </script>
+  onValue(adminRef, snap => {
+    if (!snap.exists()) {
+      set(adminRef, pass);
+      isAdmin = true;
+    } else {
+      isAdmin = snap.val() === pass;
+    }
+  }, { onlyOnce: true });
+
+  document.getElementById("login").style.display = "none";
+  document.getElementById("app").style.display = "block";
+};
+
+const stateRef = ref(db, "video");
+
+video.addEventListener("play", () => {
+  if (isAdmin) set(stateRef, { playing: true, time: video.currentTime });
+});
+video.addEventListener("pause", () => {
+  if (isAdmin) set(stateRef, { playing: false, time: video.currentTime });
+});
+video.addEventListener("seeked", () => {
+  if (isAdmin) set(stateRef, { playing: !video.paused, time: video.currentTime });
+});
+
+onValue(stateRef, snap => {
+  if (!snap.exists() || isAdmin) return;
+  const s = snap.val();
+  video.currentTime = s.time;
+  s.playing ? video.play() : video.pause();
+});
+
+const chatRef = ref(db, "chat");
+
+window.sendMsg = () => {
+  if (!msg.value) return;
+  push(chatRef, { text: msg.value });
+  msg.value = "";
+};
+
+onValue(chatRef, snap => {
+  chat.innerHTML = "";
+  snap.forEach(m => {
+    const d = document.createElement("div");
+    d.textContent = m.val().text;
+    chat.appendChild(d);
+  });
+});
+</script>
 
 </body>
 </html>
