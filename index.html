@@ -7,100 +7,266 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #020617; color: white; margin: 0; height: 100vh; overflow: hidden; }
-        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
-        #video-section { height: 35vh; background: #000; position: relative; overflow: hidden; }
-        #chat-section { height: 65vh; display: flex; flex-direction: column; position: relative; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #020617; 
+            color: white; 
+            margin: 0; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+        .glass { 
+            background: rgba(15, 23, 42, 0.9); 
+            backdrop-filter: blur(15px); 
+            border: 1px solid rgba(255,255,255,0.1); 
+        }
+        #video-section { 
+            height: 35vh; 
+            background: #000; 
+            position: relative; 
+            overflow: hidden; 
+        }
+        #chat-section { 
+            height: 65vh; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+        }
         
         /* Video Toast */
-        .video-toast { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); padding: 5px 10px; border-radius: 8px; margin-bottom: 5px; animation: fadeInOut 4s forwards; border-right: 2px solid #3b82f6; }
-        @keyframes fadeInOut { 0% { opacity: 0; transform: translateX(20px); } 10% { opacity: 1; transform: translateX(0); } 100% { opacity: 0; } }
+        .video-toast { 
+            background: rgba(0, 0, 0, 0.6); 
+            backdrop-filter: blur(4px); 
+            padding: 6px 12px; 
+            border-radius: 8px; 
+            margin-bottom: 6px; 
+            animation: fadeInOut 4s forwards; 
+            border-right: 2px solid #3b82f6; 
+            max-width: 150px;
+        }
+        @keyframes fadeInOut { 
+            0% { opacity: 0; transform: translateX(20px); } 
+            10% { opacity: 1; transform: translateX(0); } 
+            90% { opacity: 1; transform: translateX(0); } 
+            100% { opacity: 0; transform: translateX(20px); } 
+        }
 
         /* Emoji Paneli */
-        #emoji-drawer { display: none; position: absolute; top: 45px; left: 10px; z-index: 200; grid-template-cols: repeat(4, 1fr); gap: 8px; padding: 10px; border-radius: 15px; }
+        #emoji-drawer { 
+            display: none; 
+            position: absolute; 
+            top: 50px; 
+            left: 10px; 
+            z-index: 200; 
+            grid-template-columns: repeat(4, 1fr); 
+            gap: 8px; 
+            padding: 12px; 
+            border-radius: 15px; 
+            width: 200px;
+        }
         
-        /* Mesaj Kutusu Fix */
-        .input-area { background: #0f172a; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: 25px; }
+        /* MESAJ KUTUSU - Klavye için düzeltme */
+        .input-area { 
+            background: #0f172a; 
+            border-top: 1px solid rgba(255,255,255,0.1); 
+            padding-bottom: max(env(safe-area-inset-bottom), 10px);
+            position: relative;
+            z-index: 50;
+        }
 
-        .emoji-fly { position: fixed; bottom: 50%; pointer-events: none; animation: flyUp 2s forwards; font-size: 3rem; z-index: 300; }
-        @keyframes flyUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-300px); } }
+        /* Klavye açıkken input alanı */
+        .input-area.keyboard-open {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding-bottom: 10px;
+        }
+
+        /* Emoji Animasyonu */
+        .emoji-fly { 
+            position: fixed; 
+            bottom: 0; 
+            pointer-events: none; 
+            animation: flyUp 3s forwards; 
+            font-size: 2.5rem; 
+            z-index: 300; 
+            opacity: 0;
+        }
+        @keyframes flyUp { 
+            0% { opacity: 1; transform: translateY(0) scale(0.5); } 
+            20% { transform: translateY(-50px) scale(1.2); } 
+            100% { opacity: 0; transform: translateY(-100vh) scale(1); } 
+        }
+
+        /* Altın Kupa Parlaması */
+        .gold-glow {
+            animation: goldPulse 2s infinite;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+        }
+        @keyframes goldPulse {
+            0%, 100% { filter: drop-shadow(0 0 5px gold); }
+            50% { filter: drop-shadow(0 0 20px gold); }
+        }
+
+        /* BÜYÜTME BUTONU - Yeni */
+        .expand-btn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 45;
+            transition: all 0.3s ease;
+        }
+        .expand-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: scale(1.1);
+        }
+        .expand-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        /* Çift tıklama için büyütme hint'i */
+        .double-tap-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 44;
+        }
+        .double-tap-hint.show {
+            opacity: 1;
+        }
+
+        /* Admin butonları */
+        #admin-seek-controls {
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
 
+<!-- Giriş Ekranı -->
 <div id="login-screen" class="fixed inset-0 z-[500] bg-slate-950 flex items-center justify-center p-4">
     <div class="glass max-w-sm w-full p-6 rounded-[2rem] text-center">
         <h2 class="text-xl font-bold mb-4 text-blue-400">Karakterini Seç</h2>
         <div class="grid grid-cols-5 gap-2 mb-4 max-h-40 overflow-y-auto p-2 bg-black/20 rounded-xl" id="avatar-list"></div>
-        <input id="username" type="text" placeholder="İsminiz" class="w-full bg-slate-900 p-3 rounded-xl mb-2 outline-none border border-white/5">
-        <input id="room-pass" type="password" placeholder="Oda Şifresi" class="w-full bg-slate-900 p-3 rounded-xl mb-4 outline-none">
-        <button onclick="checkEntry()" class="w-full bg-blue-600 py-3 rounded-xl font-bold">GİRİŞ YAP</button>
+        <input id="username" type="text" placeholder="İsminiz" class="w-full bg-slate-900 p-3 rounded-xl mb-2 outline-none border border-white/5 text-white">
+        <input id="room-pass" type="password" placeholder="Oda Şifresi" class="w-full bg-slate-900 p-3 rounded-xl mb-4 outline-none border border-white/5 text-white">
+        <button onclick="checkEntry()" class="w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-700 transition">GİRİŞ YAP</button>
     </div>
 </div>
 
+<!-- Ana Uygulama -->
 <div id="app-screen" class="hidden flex flex-col h-screen">
     
+    <!-- Video Bölümü -->
     <div id="video-section">
-        <div id="video-toast-container" class="absolute top-2 right-2 z-50 pointer-events-none"></div>
+        <!-- Video Toast Container -->
+        <div id="video-toast-container" class="absolute top-2 right-2 z-50 pointer-events-none flex flex-col items-end"></div>
         
-        <button onclick="toggleEmojiDrawer()" class="absolute left-3 top-3 z-[210] bg-black/50 w-10 h-10 rounded-full flex items-center justify-center border border-white/20">😊</button>
-        <div id="emoji-drawer" class="glass grid grid-cols-4">
-            </div>
+        <!-- Emoji Butonu -->
+        <button onclick="toggleEmojiDrawer()" class="absolute left-3 top-3 z-[210] bg-black/50 w-10 h-10 rounded-full flex items-center justify-center border border-white/20 hover:bg-black/70 transition">😊</button>
+        
+        <!-- Emoji Çekmecesi -->
+        <div id="emoji-drawer" class="glass"></div>
 
-        <video id="main-video" class="w-full h-full" playsinline webkit-playsinline>
+        <!-- Ana Video -->
+        <video id="main-video" class="w-full h-full object-contain" playsinline webkit-playsinline preload="metadata">
             <source src="video.mp4" type="video/mp4">
         </video>
         
-        <div id="video-touch-layer" onclick="handleVideoTouch()" class="absolute inset-0 z-40"></div>
+        <!-- Video Dokunma Katmanı -->
+        <div id="video-touch-layer" class="absolute inset-0 z-40"></div>
+        
+        <!-- Çift Tıklama İpucu -->
+        <div id="tap-hint" class="double-tap-hint">👆 Tam Ekran İçin Çift Tık</div>
+        
+        <!-- BÜYÜTME BUTONU - Sağ altta -->
+        <button onclick="toggleFullscreen()" class="expand-btn" id="expand-btn">
+            <svg viewBox="0 0 24 24">
+                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+            </svg>
+        </button>
     </div>
 
+    <!-- Sohbet Bölümü -->
     <div id="chat-section">
-        <div class="p-3 border-b border-white/5 flex justify-between items-center bg-slate-900">
+        <!-- Header -->
+        <div class="p-3 border-b border-white/5 flex justify-between items-center bg-slate-900 shrink-0">
             <div class="flex items-center gap-2 text-xs">
                 <span id="my-avatar" class="text-lg"></span>
                 <span id="display-name" class="font-bold opacity-70"></span>
             </div>
-            <div class="flex items-center gap-2">
-                <div id="admin-seek-controls" class="hidden flex gap-2">
-                    <button onclick="seek(-15)" class="bg-slate-800 px-3 py-1 rounded-lg text-xs font-bold text-blue-400">-15s</button>
-                    <button onclick="seek(15)" class="bg-slate-800 px-3 py-1 rounded-lg text-xs font-bold text-blue-400">+15s</button>
+            
+            <div class="flex items-center">
+                <div id="admin-seek-controls" class="hidden flex gap-2 mr-2">
+                    <button onclick="seek(-15)" class="bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-slate-700 transition">-15s</button>
+                    <button onclick="seek(15)" class="bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-slate-700 transition">+15s</button>
                 </div>
                 <div id="admin-badge" class="hidden text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-md font-bold border border-yellow-500/20 uppercase">Yönetici</div>
             </div>
         </div>
 
-        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+        <!-- Mesajlar -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-0"></div>
         
-        <div class="input-area px-4 py-3">
-            <div class="flex gap-2 mb-2">
-                <input id="chat-input" type="text" placeholder="Mesaj yaz..." class="flex-1 bg-white/5 p-3 rounded-2xl outline-none border border-white/10 text-sm">
-                <button onclick="sendMessage()" class="bg-blue-600 px-5 rounded-2xl font-bold text-sm">GÖNDER</button>
+        <!-- Mesaj Giriş Alanı - Klavye için düzeltildi -->
+        <div class="input-area px-4 py-3" id="input-container">
+            <div class="flex gap-2">
+                <input id="chat-input" type="text" placeholder="Mesaj yaz..." class="flex-1 bg-white/5 p-3 rounded-2xl outline-none border border-white/10 text-sm focus:border-blue-500/50 transition" onfocus="handleInputFocus()" onblur="handleInputBlur()" onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()" class="bg-blue-600 px-5 rounded-2xl font-bold text-sm hover:bg-blue-700 transition shrink-0">GÖNDER</button>
             </div>
         </div>
     </div>
 
-    <button id="settings-btn" onclick="showAdminModal()" class="fixed bottom-32 right-4 w-10 h-10 bg-slate-800/80 rounded-full z-[100] border border-white/10">⚙️</button>
+    <!-- Admin Butonu -->
+    <button id="settings-btn" onclick="showAdminModal()" class="fixed bottom-28 right-4 w-12 h-12 bg-slate-800/80 rounded-full z-[100] border border-white/10 flex items-center justify-center text-xl hover:scale-110 transition">⚙️</button>
 </div>
 
+<!-- Admin Modal -->
 <div id="admin-modal" class="fixed inset-0 bg-black/95 hidden flex items-center justify-center z-[600] p-6">
     <div class="glass p-6 rounded-3xl max-w-sm w-full">
         <div id="admin-login-view">
-            <h3 class="text-center font-bold mb-4 text-yellow-500">ADMIN DOĞRULAMA</h3>
-            <input id="admin-pass-input" type="password" placeholder="Şifre" class="w-full bg-slate-900 p-3 rounded-xl mb-4 outline-none border border-yellow-500/10">
-            <button onclick="tryAdmin()" class="w-full bg-yellow-600 text-black font-bold py-3 rounded-xl">YETKİ AL</button>
-            <button onclick="closeAdminModal()" class="w-full text-xs text-gray-500 mt-4 text-center">Kapat</button>
+            <h3 class="text-center font-bold mb-4 text-yellow-500 text-lg">🔐 ADMIN DOĞRULAMA</h3>
+            <input id="admin-pass-input" type="password" placeholder="Admin Şifresi" class="w-full bg-slate-900 p-3 rounded-xl mb-4 outline-none border border-yellow-500/20 text-white">
+            <button onclick="tryAdmin()" class="w-full bg-yellow-600 text-black font-bold py-3 rounded-xl hover:bg-yellow-500 transition">YETKİ AL</button>
+            <button onclick="closeAdminModal()" class="w-full text-xs text-gray-500 mt-4 text-center py-2">Kapat</button>
         </div>
         <div id="admin-panel-view" class="hidden space-y-4">
-            <button onclick="resetChat()" class="w-full bg-red-600/20 text-red-500 p-2 rounded-lg font-bold text-xs">SOHBETİ TEMİZLE</button>
-            <div id="user-kick-list" class="max-h-40 overflow-y-auto"></div>
-            <button onclick="closeAdminModal()" class="w-full bg-white/5 p-2 rounded-lg text-xs">PANELİ KAPAT</button>
+            <h3 class="text-center font-bold text-yellow-500 mb-2">🏆 YÖNETİCİ PANELİ</h3>
+            <button onclick="resetChat()" class="w-full bg-red-600/20 text-red-500 p-3 rounded-lg font-bold text-sm hover:bg-red-600/30 transition border border-red-500/20">🗑️ SOHBETİ TEMİZLE</button>
+            <div class="border-t border-white/10 pt-3">
+                <p class="text-xs text-gray-400 mb-2 font-bold">👥 AKTİF KULLANICILAR</p>
+                <div id="user-kick-list" class="max-h-48 overflow-y-auto space-y-1"></div>
+            </div>
+            <button onclick="closeAdminModal()" class="w-full bg-white/5 p-3 rounded-lg text-xs hover:bg-white/10 transition mt-2">PANELİ KAPAT</button>
         </div>
     </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, get, set, onValue, push, remove } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import { getDatabase, ref, get, set, onValue, push, remove, onDisconnect } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDBechvUwDzQ5gD8cdiDN_qSObt7RFKKUg",
@@ -115,143 +281,417 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let myUser = { id: Math.random().toString(36).substr(2, 9), name: "", avatar: "👤", role: "user" };
+let myUser = { 
+    id: Math.random().toString(36).substr(2, 9), 
+    name: "", 
+    avatar: "👤", 
+    role: "user",
+    joinedAt: Date.now()
+};
+
 const video = document.getElementById("main-video");
-const avatars = ["🐱", "🐶", "🦊", "🦁", "🐸", "🤖", "🦄", "🐧", "🐼", "🐨", "🐙", "👻", "🐵", "🐥", "🐝", "🦖", "🥨", "🍕", "🎈", "🍔", "🍦", "🚀", "🎸", "🎮", "👑", "🧿", "🍀", "🔥", "💎", "🌈"];
+const avatars = ["🐱","🐶","🦊","🦁","🐸","🤖","🦄","🐧","🐼","🐨","🐙","👻","🐵","🐥","🐝","🦖","🥨","🍕","🎈","🍔","🍦","🚀","🎸","🎮","👑","🧿","🍀","🔥","💎","🌈"];
 const emojis = ['😘','😂','🔥','❤️','😮','👏','💀','💯','🎉','👀','✨','🙌'];
 
-// Karakter Hazırla
+// Karakter Seçimi
 const avList = document.getElementById("avatar-list");
-avatars.forEach(a => {
+avatars.forEach((a, index) => {
     const d = document.createElement("div");
-    d.className = "text-2xl p-2 cursor-pointer rounded-xl hover:bg-white/10";
+    d.className = "text-2xl p-2 cursor-pointer rounded-xl hover:bg-white/10 transition border border-transparent";
     d.textContent = a;
     d.onclick = () => {
-        document.querySelectorAll("#avatar-list div").forEach(el => el.classList.remove('bg-blue-600'));
-        d.classList.add('bg-blue-600');
+        document.querySelectorAll("#avatar-list div").forEach(el => {
+            el.classList.remove('bg-blue-600', 'border-blue-400');
+        });
+        d.classList.add('bg-blue-600', 'border-blue-400');
         myUser.avatar = a;
     };
+    if(index === 0) {
+        d.classList.add('bg-blue-600', 'border-blue-400');
+        myUser.avatar = a;
+    }
     avList.appendChild(d);
 });
 
-// Emoji Hazırla
+// Emoji Çekmecesi
 const emDrawer = document.getElementById("emoji-drawer");
 emojis.forEach(e => {
     const b = document.createElement("button");
-    b.className = "text-xl p-2 hover:bg-white/10 rounded-lg";
+    b.className = "text-2xl p-2 hover:bg-white/10 rounded-lg transition transform hover:scale-110";
     b.textContent = e;
-    b.onclick = () => { sendEmoji(e); toggleEmojiDrawer(); };
+    b.onclick = () => { 
+        sendEmoji(e); 
+        toggleEmojiDrawer(); 
+    };
     emDrawer.appendChild(b);
 });
 
 window.toggleEmojiDrawer = () => {
     const d = document.getElementById("emoji-drawer");
-    d.style.display = (d.style.display === 'grid') ? 'none' : 'grid';
-};
-
-// VİDEO TAM EKRAN VE YAN YATIRMA
-window.handleVideoTouch = async () => {
-    if (!document.fullscreenElement) {
-        try {
-            await video.requestFullscreen();
-            if (screen.orientation && screen.orientation.lock) {
-                await screen.orientation.lock("landscape").catch(() => {});
-            }
-        } catch (e) {}
-    } else {
-        document.exitFullscreen();
+    const isOpen = d.style.display === 'grid';
+    d.style.display = isOpen ? 'none' : 'grid';
+    
+    if(!isOpen) {
+        setTimeout(() => {
+            document.addEventListener('click', function closeDrawer(ev) {
+                if(!d.contains(ev.target) && ev.target !== document.querySelector('button[onclick="toggleEmojiDrawer()"]')) {
+                    d.style.display = 'none';
+                    document.removeEventListener('click', closeDrawer);
+                }
+            });
+        }, 100);
     }
 };
 
+// ÇİFT TIKLAMA ALGILAMA - Video bölgesi için
+let lastTap = 0;
+const videoSection = document.getElementById("video-section");
+
+videoSection.addEventListener('click', (e) => {
+    // Emoji butonu veya expand butonuna tıklanırsa ignore et
+    if(e.target.closest('#emoji-drawer') || e.target.closest('.expand-btn') || e.target.closest('button')) return;
+    
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTap;
+    
+    if(tapLength < 300 && tapLength > 0) {
+        // Çift tıklama algılandı
+        toggleFullscreen();
+    } else {
+        // Tek tıklama - hint göster
+        const hint = document.getElementById('tap-hint');
+        hint.classList.add('show');
+        setTimeout(() => hint.classList.remove('show'), 1500);
+    }
+    lastTap = currentTime;
+});
+
+// TAM EKRAN FONKSİYONU
+window.toggleFullscreen = async () => {
+    const expandBtn = document.getElementById('expand-btn');
+    
+    if (!document.fullscreenElement) {
+        try {
+            await videoSection.requestFullscreen();
+            if (screen.orientation && screen.orientation.lock) {
+                await screen.orientation.lock("landscape").catch(() => {});
+            }
+            // Buton ikonunu değiştir (küçült ikonu)
+            expandBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>`;
+        } catch (e) {
+            console.log("Fullscreen error:", e);
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+            if (screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+            // Buton ikonunu değiştir (büyüt ikonu)
+            expandBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>`;
+        }
+    }
+};
+
+// Tam ekran değişikliğini dinle
+document.addEventListener('fullscreenchange', () => {
+    const expandBtn = document.getElementById('expand-btn');
+    if (!document.fullscreenElement) {
+        expandBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>`;
+    }
+});
+
+// KLAVYE SORUNU ÇÖZÜMÜ - Visual Viewport API
+const inputContainer = document.getElementById('input-container');
+const chatSection = document.getElementById('chat-section');
+
+function handleInputFocus() {
+    // Klavye açılma animasyonu için küçük gecikme
+    setTimeout(() => {
+        if (window.visualViewport) {
+            const viewportHeight = window.visualViewport.height;
+            const windowHeight = window.innerHeight;
+            const keyboardHeight = windowHeight - viewportHeight;
+            
+            if (keyboardHeight > 100) { // Klavye açık
+                inputContainer.style.position = 'fixed';
+                inputContainer.style.bottom = '0';
+                inputContainer.style.left = '0';
+                inputContainer.style.right = '0';
+                inputContainer.style.zIndex = '1000';
+                
+                // Mesajları yukarı kaydır
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+    }, 100);
+}
+
+function handleInputBlur() {
+    // Klavye kapandığında eski haline döndür
+    setTimeout(() => {
+        inputContainer.style.position = '';
+        inputContainer.style.bottom = '';
+        inputContainer.style.left = '';
+        inputContainer.style.right = '';
+        inputContainer.style.zIndex = '';
+    }, 100);
+}
+
+// Visual Viewport değişikliklerini dinle (iOS/Android)
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        const chatMessages = document.getElementById('chat-messages');
+        // Input focus'taysa mesajları en alta kaydır
+        if (document.activeElement === document.getElementById('chat-input')) {
+            setTimeout(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 50);
+        }
+    });
+}
+
+// Giriş Kontrolü
 window.checkEntry = async () => {
-    const pass = document.getElementById("room-pass").value;
-    const name = document.getElementById("username").value;
-    const snap = await get(ref(db, "room1"));
-    if(pass === String(snap.val().enterPassword)) {
-        myUser.name = name;
-        document.getElementById("login-screen").classList.add("hidden");
-        document.getElementById("app-screen").classList.remove("hidden");
-        document.getElementById("my-avatar").textContent = myUser.avatar;
-        document.getElementById("display-name").textContent = name;
-        set(ref(db, "room1/users/" + myUser.id), { name: name, avatar: myUser.avatar });
-        startApp();
-    } else { alert("Şifre Hatalı!"); }
+    const pass = document.getElementById("room-pass").value.trim();
+    const name = document.getElementById("username").value.trim();
+    
+    if(!name) {
+        alert("Lütfen bir isim girin!");
+        return;
+    }
+    
+    try {
+        const snap = await get(ref(db, "room1"));
+        const data = snap.val() || {};
+        
+        if(pass === String(data.enterPassword)) {
+            myUser.name = name;
+            
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("app-screen").classList.remove("hidden");
+            document.getElementById("my-avatar").textContent = myUser.avatar;
+            document.getElementById("display-name").textContent = name;
+            
+            const userRef = ref(db, "room1/users/" + myUser.id);
+            await set(userRef, { 
+                name: name, 
+                avatar: myUser.avatar,
+                joinedAt: myUser.joinedAt 
+            });
+            
+            onDisconnect(userRef).remove();
+            startApp();
+        } else {
+            alert("Şifre Hatalı!");
+        }
+    } catch(e) {
+        console.error("Giriş hatası:", e);
+        alert("Bağlantı hatası!");
+    }
 };
 
 function startApp() {
     let firstLoad = true;
+    
     onValue(ref(db, "room1/chat"), snap => {
         const box = document.getElementById("chat-messages");
         box.innerHTML = "";
         const data = snap.val() || {};
-        Object.values(data).forEach(d => {
-            box.innerHTML += `<div class="flex gap-2"><span>${d.avatar}</span><div><p class="text-[10px] opacity-50 font-bold">${d.user}</p><p class="text-sm">${d.text}</p></div></div>`;
+        const messages = Object.entries(data);
+        
+        messages.forEach(([key, d]) => {
+            const isMe = d.user === myUser.name;
+            const div = document.createElement("div");
+            div.className = `flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`;
+            div.innerHTML = `
+                <span class="text-lg select-none">${d.avatar}</span>
+                <div class="${isMe ? 'text-right' : ''}">
+                    <p class="text-[10px] opacity-50 font-bold mb-0.5">${d.user}</p>
+                    <p class="text-sm bg-white/5 px-3 py-1.5 rounded-xl inline-block max-w-[200px] break-words">${d.text}</p>
+                </div>
+            `;
+            box.appendChild(div);
         });
+        
         box.scrollTop = box.scrollHeight;
         
-        if(!firstLoad) {
-            const last = Object.values(data).pop();
-            if(last && last.user !== myUser.name) showVideoToast(last.user, last.text);
+        if(!firstLoad && messages.length > 0) {
+            const lastMsg = messages[messages.length - 1][1];
+            if(lastMsg && lastMsg.user !== myUser.name) {
+                showVideoToast(lastMsg.user, lastMsg.text, lastMsg.avatar);
+            }
         }
         firstLoad = false;
     });
 
     onValue(ref(db, "room1/video"), snap => {
         if(myUser.role === 'admin') return;
+        
         const s = snap.val();
-        if(Math.abs(video.currentTime - s.time) > 2.5) video.currentTime = s.time;
-        s.playing ? video.play().catch(() => {}) : video.pause();
+        if(!s) return;
+        
+        if(Math.abs(video.currentTime - s.time) > 2.5) {
+            video.currentTime = s.time;
+        }
+        
+        if(s.playing && video.paused) {
+            video.play().catch(() => {});
+        } else if(!s.playing && !video.paused) {
+            video.pause();
+        }
     });
 
-    onValue(ref(db, "room1/emojis"), snap => { if(snap.exists()) triggerEmoji(snap.val().icon); });
-    onValue(ref(db, "room1/users/" + myUser.id), snap => { if(!snap.exists()) location.reload(); });
+    onValue(ref(db, "room1/emojis"), snap => { 
+        if(snap.exists()) {
+            const data = snap.val();
+            if(data.sender !== myUser.id) {
+                triggerEmoji(data.icon);
+            }
+        }
+    });
+    
+    onValue(ref(db, "room1/users/" + myUser.id), snap => { 
+        if(!snap.exists()) {
+            alert("Odadan atıldınız!");
+            location.reload(); 
+        }
+    });
+    
     onValue(ref(db, "room1/users"), snap => {
         const list = document.getElementById("user-kick-list");
         list.innerHTML = "";
+        
+        if(!snap.exists()) {
+            list.innerHTML = '<p class="text-xs text-gray-500 text-center py-2">Aktif kullanıcı yok</p>';
+            return;
+        }
+        
         snap.forEach(u => {
-            if(u.key !== myUser.id) list.innerHTML += `<div class="flex justify-between items-center bg-white/5 p-2 rounded-lg mb-1 text-xs"><span>${u.val().name}</span><button onclick="kickUser('${u.key}')" class="text-red-500 font-bold">AT</button></div>`;
+            const userData = u.val();
+            if(u.key !== myUser.id) {
+                const div = document.createElement("div");
+                div.className = "flex justify-between items-center bg-white/5 p-2 rounded-lg text-xs hover:bg-white/10 transition";
+                div.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span>${userData.avatar}</span>
+                        <span class="truncate max-w-[100px]">${userData.name}</span>
+                    </div>
+                    <button onclick="kickUser('${u.key}')" class="bg-red-500/20 text-red-400 px-2 py-1 rounded font-bold hover:bg-red-500/40 transition text-[10px]">AT</button>
+                `;
+                list.appendChild(div);
+            }
         });
+    });
+    
+    video.addEventListener('play', () => {
+        if(myUser.role === 'admin') {
+            set(ref(db, "room1/video"), { playing: true, time: video.currentTime });
+        }
+    });
+    
+    video.addEventListener('pause', () => {
+        if(myUser.role === 'admin') {
+            set(ref(db, "room1/video"), { playing: false, time: video.currentTime });
+        }
+    });
+    
+    video.addEventListener('seeked', () => {
+        if(myUser.role === 'admin') {
+            set(ref(db, "room1/video"), { playing: !video.paused, time: video.currentTime });
+        }
     });
 }
 
-function showVideoToast(user, text) {
+function showVideoToast(user, text, avatar) {
     const container = document.getElementById("video-toast-container");
     const t = document.createElement("div");
     t.className = "video-toast";
-    t.innerHTML = `<p class="text-[8px] font-bold text-blue-400">${user}</p><p class="text-[10px] truncate max-w-[120px]">${text}</p>`;
+    t.innerHTML = `
+        <div class="flex items-center gap-1 mb-0.5">
+            <span class="text-xs">${avatar}</span>
+            <p class="text-[9px] font-bold text-blue-400 uppercase tracking-wider">${user}</p>
+        </div>
+        <p class="text-[11px] truncate leading-tight">${text}</p>
+    `;
     container.appendChild(t);
-    setTimeout(() => t.remove(), 4000);
+    setTimeout(() => {
+        t.style.opacity = '0';
+        setTimeout(() => t.remove(), 500);
+    }, 4000);
 }
 
 window.tryAdmin = async () => {
     const pass = document.getElementById("admin-pass-input").value;
-    const snap = await get(ref(db, "room1/adminPassword"));
-    if(pass === String(snap.val())) {
-        myUser.role = "admin";
-        document.getElementById("admin-login-view").classList.add("hidden");
-        document.getElementById("admin-panel-view").classList.remove("hidden");
-        document.getElementById("admin-seek-controls").classList.remove("hidden");
-        document.getElementById("admin-badge").classList.remove("hidden");
-        document.getElementById("settings-btn").textContent = "🏆";
-        // Admin videoyu kontrol edebilir hale gelir
-        document.getElementById("video-touch-layer").style.display = "none";
-        video.controls = true;
+    
+    try {
+        const snap = await get(ref(db, "room1/adminPassword"));
+        if(pass === String(snap.val())) {
+            myUser.role = "admin";
+            
+            document.getElementById("admin-login-view").classList.add("hidden");
+            document.getElementById("admin-panel-view").classList.remove("hidden");
+            document.getElementById("admin-seek-controls").classList.remove("hidden");
+            document.getElementById("admin-badge").classList.remove("hidden");
+            
+            const btn = document.getElementById("settings-btn");
+            btn.textContent = "🏆";
+            btn.classList.add("gold-glow", "bg-yellow-500/20", "border-yellow-500/50");
+            btn.classList.remove("bg-slate-800/80");
+            
+            document.getElementById("video-touch-layer").style.display = "none";
+            video.controls = true;
+            video.style.pointerEvents = "auto";
+            
+            set(ref(db, "room1/video"), { 
+                playing: !video.paused, 
+                time: video.currentTime 
+            });
+            
+        } else {
+            alert("Yanlış şifre!");
+        }
+    } catch(e) {
+        console.error("Admin hatası:", e);
     }
 };
 
-window.seek = (s) => {
-    video.currentTime += s;
-    set(ref(db, "room1/video"), { playing: !video.paused, time: video.currentTime });
+window.seek = (seconds) => {
+    if(myUser.role !== 'admin') return;
+    
+    video.currentTime += seconds;
+    set(ref(db, "room1/video"), { 
+        playing: !video.paused, 
+        time: video.currentTime 
+    });
 };
 
 window.sendMessage = () => {
     const inp = document.getElementById("chat-input");
-    if(!inp.value) return;
-    push(ref(db, "room1/chat"), { user: myUser.name, avatar: myUser.avatar, text: inp.value });
+    const text = inp.value.trim();
+    
+    if(!text) return;
+    
+    push(ref(db, "room1/chat"), { 
+        user: myUser.name, 
+        avatar: myUser.avatar, 
+        text: text,
+        timestamp: Date.now()
+    });
+    
     inp.value = "";
+    inp.focus(); // Klavyeyi açık tut
 };
 
-window.sendEmoji = (icon) => set(ref(db, "room1/emojis"), { icon: icon, t: Date.now() });
+window.sendEmoji = (icon) => {
+    set(ref(db, "room1/emojis"), { 
+        icon: icon, 
+        sender: myUser.id,
+        timestamp: Date.now()
+    });
+    triggerEmoji(icon);
+};
 
 function triggerEmoji(icon) {
     const el = document.createElement("div");
@@ -259,13 +699,38 @@ function triggerEmoji(icon) {
     el.textContent = icon;
     el.style.left = Math.random() * 60 + 20 + "%";
     document.body.appendChild(el);
-    setTimeout(() => el.remove(), 2000);
+    
+    setTimeout(() => el.remove(), 3000);
 }
 
-window.showAdminModal = () => document.getElementById("admin-modal").classList.toggle("hidden");
-window.closeAdminModal = () => document.getElementById("admin-modal").classList.add("hidden");
-window.resetChat = () => remove(ref(db, "room1/chat"));
-window.kickUser = (uid) => remove(ref(db, "room1/users/" + uid));
+window.showAdminModal = () => {
+    const modal = document.getElementById("admin-modal");
+    modal.classList.remove("hidden");
+    if(myUser.role === 'admin') {
+        document.getElementById("admin-login-view").classList.add("hidden");
+        document.getElementById("admin-panel-view").classList.remove("hidden");
+    }
+};
+
+window.closeAdminModal = () => {
+    document.getElementById("admin-modal").classList.add("hidden");
+};
+
+window.resetChat = () => {
+    if(confirm("Tüm mesajları silmek istediğinize emin misiniz?")) {
+        remove(ref(db, "room1/chat"));
+    }
+};
+
+window.kickUser = (uid) => {
+    if(confirm("Bu kullanıcıyı odadan atmak istediğinize emin misiniz?")) {
+        remove(ref(db, "room1/users/" + uid));
+    }
+};
+
+// Global fonksiyonları window'a ata
+window.handleInputFocus = handleInputFocus;
+window.handleInputBlur = handleInputBlur;
 </script>
 </body>
 </html>
