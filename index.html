@@ -2,98 +2,94 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Birlikte İzleme | Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Birlikte İzleme | Pro V2</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #020617; color: white; margin: 0; height: 100vh; overflow: hidden; }
-        .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        .gold-glow { box-shadow: 0 0 15px rgba(234, 179, 8, 0.4); border: 1px solid rgba(234, 179, 8, 0.6) !important; }
-        #video-section { height: 40vh; background: #000; position: relative; }
-        #chat-section { height: 60vh; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        #video-section { height: 35vh; background: #000; position: relative; z-index: 10; }
+        #chat-section { height: 65vh; display: flex; flex-direction: column; }
         .emoji-fly { position: fixed; bottom: 50%; pointer-events: none; animation: flyUp 2s ease-out forwards; font-size: 3rem; z-index: 100; }
         @keyframes flyUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-400px) scale(2); opacity: 0; } }
-        .seek-btn { background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; border: 1px solid rgba(255,255,255,0.1); transition: 0.2s; }
-        .seek-btn:hover { background: rgba(255,255,255,0.15); color: #60a5fa; }
+        .seek-btn { background: #1e293b; padding: 6px 16px; border-radius: 10px; font-size: 13px; font-weight: bold; border: 1px solid #334155; }
+        /* Mesaj kısmını yukarıda tutmak için */
+        .chat-input-container { padding-bottom: env(safe-area-inset-bottom, 20px); background: #020617; border-top: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
 
-<div id="login-screen" class="fixed inset-0 z-[500] bg-slate-950 flex items-center justify-center p-4">
-    <div class="glass max-w-sm w-full p-8 rounded-[2rem] text-center">
-        <h2 class="text-2xl font-bold mb-6">Odaya Bağlan</h2>
-        <div class="grid grid-cols-4 gap-3 mb-6" id="avatar-list"></div>
-        <input id="username" type="text" placeholder="Kullanıcı Adı" class="w-full bg-slate-900 p-3 rounded-xl mb-3 outline-none border border-white/5 focus:border-blue-500 text-sm">
-        <input id="room-pass" type="password" placeholder="Oda Şifresi" class="w-full bg-slate-900 p-3 rounded-xl mb-6 outline-none border border-white/5 text-sm">
-        <button onclick="checkEntry()" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold transition-all">Giriş</button>
+<div id="login-screen" class="fixed inset-0 z-[500] bg-slate-950 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="glass max-w-sm w-full p-6 rounded-[2rem] text-center">
+        <h2 class="text-xl font-bold mb-4">Karakterini Seç & Gir</h2>
+        <div class="grid grid-cols-5 gap-2 mb-4 max-h-40 overflow-y-auto p-2 bg-black/20 rounded-xl" id="avatar-list"></div>
+        <input id="username" type="text" placeholder="Adınız" class="w-full bg-slate-900 p-3 rounded-xl mb-2 outline-none border border-white/5 text-sm">
+        <input id="room-pass" type="password" placeholder="Oda Şifresi" class="w-full bg-slate-900 p-3 rounded-xl mb-4 outline-none border border-white/5 text-sm">
+        <button onclick="checkEntry()" class="w-full bg-blue-600 py-3 rounded-xl font-bold">BAĞLAN</button>
     </div>
 </div>
 
 <div id="app-screen" class="hidden flex flex-col h-screen">
     
-    <div id="video-section" class="group">
-        <video id="main-video" class="w-full h-full object-contain" 
-               playsinline webkit-playsinline allowfullscreen x5-playsinline>
+    <div id="video-section">
+        <video id="main-video" class="w-full h-full" playsinline controls>
             <source src="video.mp4" type="video/mp4">
         </video>
 
-        <div id="emoji-menu" class="absolute right-4 bottom-4 flex flex-col gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onclick="sendEmoji('😘')" class="text-2xl hover:scale-110">😘</button>
-            <button onclick="sendEmoji('😂')" class="text-2xl hover:scale-110">😂</button>
-            <button onclick="sendEmoji('🔥')" class="text-2xl hover:scale-110">🔥</button>
+        <div id="emoji-menu" class="absolute left-2 top-2 flex flex-wrap gap-2 z-50 max-w-[120px]">
+            <button onclick="sendEmoji('😘')" class="text-xl bg-black/40 p-1 rounded-lg">😘</button>
+            <button onclick="sendEmoji('😂')" class="text-xl bg-black/40 p-1 rounded-lg">😂</button>
+            <button onclick="sendEmoji('🔥')" class="text-xl bg-black/40 p-1 rounded-lg">🔥</button>
+            <button onclick="sendEmoji('❤️')" class="text-xl bg-black/40 p-1 rounded-lg">❤️</button>
+            <button onclick="sendEmoji('😮')" class="text-xl bg-black/40 p-1 rounded-lg">😮</button>
+            <button onclick="sendEmoji('👏')" class="text-xl bg-black/40 p-1 rounded-lg">👏</button>
+            <button onclick="sendEmoji('👀')" class="text-xl bg-black/40 p-1 rounded-lg">👀</button>
+            <button onclick="sendEmoji('💀')" class="text-xl bg-black/40 p-1 rounded-lg">💀</button>
         </div>
     </div>
 
-    <div id="chat-section" class="flex flex-col bg-slate-900/30">
-        <div class="p-3 border-b border-white/5 flex justify-between items-center bg-slate-900/80">
+    <div id="chat-section">
+        <div class="p-3 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
             <div class="flex items-center gap-2">
                 <span id="my-avatar" class="text-xl"></span>
-                <span class="font-bold text-xs opacity-70" id="display-name">Sohbet</span>
+                <span class="font-bold text-xs" id="display-name">...</span>
             </div>
             
             <div class="flex items-center gap-2">
-                <div id="admin-seek-controls" class="hidden flex gap-1">
+                <div id="admin-seek-controls" class="hidden flex gap-2">
                     <button onclick="seek(-15)" class="seek-btn text-blue-400">-15s</button>
-                    <button onclick="togglePlay()" id="play-btn" class="seek-btn">▶</button>
                     <button onclick="seek(15)" class="seek-btn text-blue-400">+15s</button>
                 </div>
-                <div id="admin-badge" class="hidden text-[10px] bg-yellow-500/10 text-yellow-500 px-3 py-1.5 rounded-lg font-bold border border-yellow-500/30 uppercase tracking-tighter">Yönetici</div>
+                <div id="admin-badge" class="hidden text-[10px] bg-yellow-500/20 text-yellow-500 px-3 py-1 rounded-full font-bold">YÖNETİCİ</div>
             </div>
         </div>
 
-        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950/20"></div>
         
-        <div class="p-4 bg-slate-950/80 flex gap-2">
-            <input id="chat-input" type="text" placeholder="Mesaj yaz..." class="flex-1 bg-white/5 p-3 rounded-xl outline-none text-sm border border-white/5 focus:border-blue-500">
-            <button onclick="sendMessage()" class="bg-blue-600 px-4 rounded-xl text-sm font-bold">GÖNDER</button>
+        <div class="chat-input-container p-4">
+            <div class="flex gap-2">
+                <input id="chat-input" type="text" placeholder="Mesaj..." class="flex-1 bg-white/5 p-3 rounded-xl outline-none border border-white/5 focus:border-blue-500 text-sm">
+                <button onclick="sendMessage()" class="bg-blue-600 px-6 rounded-xl font-bold">TIKLA</button>
+            </div>
         </div>
     </div>
 
-    <button id="settings-btn" onclick="showAdminModal()" class="fixed bottom-24 right-4 w-10 h-10 bg-white/5 rounded-full flex items-center justify-center transition-all z-[100] border border-white/10 opacity-40 hover:opacity-100">
-        ⚙️
-    </button>
+    <button id="settings-btn" onclick="showAdminModal()" class="fixed bottom-24 right-4 w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center z-[100] opacity-60">⚙️</button>
 </div>
 
 <div id="admin-modal" class="fixed inset-0 bg-black/95 hidden flex items-center justify-center z-[600] p-6">
-    <div class="glass p-6 rounded-3xl max-w-sm w-full border-t-2 border-yellow-500/50 shadow-2xl">
+    <div class="glass p-6 rounded-3xl max-w-sm w-full">
         <div id="admin-login-view">
-            <h3 class="text-center font-bold mb-4 text-yellow-500 text-sm">ADMIN GİRİŞİ</h3>
-            <input id="admin-pass-input" type="password" placeholder="Şifre" class="w-full bg-slate-900 p-3 rounded-xl mb-4 outline-none border border-yellow-500/10">
+            <h3 class="text-center font-bold mb-4 text-yellow-500">YÖNETİCİ GİRİŞİ</h3>
+            <input id="admin-pass-input" type="password" placeholder="Admin Şifresi" class="w-full bg-slate-900 p-3 rounded-xl mb-4 outline-none">
             <button onclick="tryAdmin()" class="w-full bg-yellow-600 text-black font-bold py-3 rounded-xl">YETKİ AL</button>
-            <button onclick="closeAdminModal()" class="w-full text-[10px] text-gray-500 mt-4">Kapat</button>
+            <button onclick="closeAdminModal()" class="w-full text-xs text-gray-500 mt-4">Kapat</button>
         </div>
-
-        <div id="admin-panel-view" class="hidden">
-            <h3 class="text-center font-bold mb-4 text-yellow-500 italic">YÖNETİM PANELİ</h3>
-            <div class="space-y-4">
-                <button onclick="resetChat()" class="w-full bg-red-600/10 text-red-500 border border-red-600/20 py-2 rounded-lg text-xs font-bold tracking-widest">SOHBETİ TEMİZLE</button>
-                <div class="bg-white/5 p-3 rounded-xl">
-                    <p class="text-[10px] text-gray-400 mb-2 uppercase">Kullanıcıyı At</p>
-                    <div id="user-kick-list" class="max-h-40 overflow-y-auto space-y-2 text-xs"></div>
-                </div>
-                <button onclick="closeAdminModal()" class="w-full bg-white/5 py-2 rounded-lg text-[10px]">PANELİ KAPAT</button>
-            </div>
+        <div id="admin-panel-view" class="hidden space-y-4 text-center">
+            <button onclick="resetChat()" class="w-full bg-red-600/20 text-red-500 p-2 rounded-lg">SOHBETİ SİL</button>
+            <div id="user-kick-list" class="max-h-32 overflow-y-auto space-y-1"></div>
+            <button onclick="closeAdminModal()" class="w-full bg-white/5 p-2 rounded-lg text-xs">KAPAT</button>
         </div>
     </div>
 </div>
@@ -117,16 +113,17 @@ const db = getDatabase(app);
 
 let myUser = { id: Math.random().toString(36).substr(2, 9), name: "", avatar: "👤", role: "user" };
 const video = document.getElementById("main-video");
-const avatars = ["🐱", "🐶", "🦊", "🦁", "🐸", "🤖", "🦄", "🐧", "🐼"];
+const avatars = ["🐱", "🐶", "🦊", "🦁", "🐸", "🤖", "🦄", "🐧", "🐼", "🐨", "🐙", "👻", "🐵", "🐥", "🐝", "🦖", "🦄", "🥨", "🍕", "🎈"];
 
+// Avatar Listesi
 const avList = document.getElementById("avatar-list");
 avatars.forEach(a => {
     const d = document.createElement("div");
-    d.className = "text-2xl p-2 cursor-pointer glass rounded-xl text-center hover:bg-white/10";
+    d.className = "text-2xl p-2 cursor-pointer rounded-lg hover:bg-white/10";
     d.textContent = a;
     d.onclick = () => {
-        document.querySelectorAll("#avatar-list div").forEach(el => el.classList.remove('bg-blue-600/40', 'border-blue-500'));
-        d.classList.add('bg-blue-600/40', 'border-blue-500');
+        document.querySelectorAll("#avatar-list div").forEach(el => el.classList.remove('bg-blue-600'));
+        d.classList.add('bg-blue-600');
         myUser.avatar = a;
     };
     avList.appendChild(d);
@@ -144,7 +141,7 @@ window.checkEntry = async () => {
         document.getElementById("display-name").textContent = name;
         set(ref(db, "room1/users/" + myUser.id), { name: name, avatar: myUser.avatar });
         startApp();
-    } else { alert("Şifre Yanlış!"); }
+    } else { alert("Şifre Hatalı!"); }
 };
 
 function startApp() {
@@ -153,10 +150,7 @@ function startApp() {
         box.innerHTML = "";
         snap.forEach(m => {
             const d = m.val();
-            const div = document.createElement("div");
-            div.className = "flex gap-3 items-start";
-            div.innerHTML = `<span class="text-xl">${d.avatar}</span><div><p class="text-[10px] ${d.role === 'admin' ? 'text-yellow-500' : 'text-blue-400'} font-bold">${d.user}</p><p class="text-sm">${d.text}</p></div>`;
-            box.appendChild(div);
+            box.innerHTML += `<div class="flex gap-2"><span>${d.avatar}</span><div><p class="text-[10px] opacity-50 font-bold">${d.user}</p><p class="text-sm">${d.text}</p></div></div>`;
         });
         box.scrollTop = box.scrollHeight;
     });
@@ -164,31 +158,25 @@ function startApp() {
     onValue(ref(db, "room1/video"), snap => {
         if(myUser.role === 'admin') return;
         const s = snap.val();
-        if(Math.abs(video.currentTime - s.time) > 1.5) video.currentTime = s.time;
-        s.playing ? video.play().catch(() => {}) : video.pause();
+        if(Math.abs(video.currentTime - s.time) > 2) video.currentTime = s.time;
+        s.playing ? video.play() : video.pause();
     });
 
     onValue(ref(db, "room1/emojis"), snap => { if(snap.exists()) triggerEmoji(snap.val().icon); });
-
-    onValue(ref(db, "room1/users/" + myUser.id), snap => {
-        if(!snap.exists()) { alert("Odadan atıldınız!"); location.reload(); }
-    });
-
+    
+    // Kick & User List
+    onValue(ref(db, "room1/users/" + myUser.id), snap => { if(!snap.exists()) location.reload(); });
     onValue(ref(db, "room1/users"), snap => {
         const list = document.getElementById("user-kick-list");
         list.innerHTML = "";
         snap.forEach(u => {
-            if(u.key === myUser.id) return;
-            const btn = document.createElement("div");
-            btn.className = "flex justify-between items-center bg-white/5 p-2 rounded-lg";
-            btn.innerHTML = `<span>${u.val().avatar} ${u.val().name}</span> <button onclick="kickUser('${u.key}')" class="text-red-500 font-bold">AT</button>`;
-            list.appendChild(btn);
+            if(u.key !== myUser.id) list.innerHTML += `<div class="flex justify-between text-xs p-1 bg-white/5 rounded"><span>${u.val().name}</span><button onclick="kickUser('${u.key}')" class="text-red-500">AT</button></div>`;
         });
     });
 }
 
-window.showAdminModal = () => document.getElementById("admin-modal").classList.remove("hidden");
-window.closeAdminModal = () => document.getElementById("admin-modal").classList.add("hidden");
+// Tam Ekran Desteği (Video tıklandığında)
+video.onclick = () => { if(video.requestFullscreen) video.requestFullscreen(); };
 
 window.tryAdmin = async () => {
     const pass = document.getElementById("admin-pass-input").value;
@@ -199,33 +187,20 @@ window.tryAdmin = async () => {
         document.getElementById("admin-panel-view").classList.remove("hidden");
         document.getElementById("admin-seek-controls").classList.remove("hidden");
         document.getElementById("admin-badge").classList.remove("hidden");
-        const btn = document.getElementById("settings-btn");
-        btn.innerHTML = "🏆"; btn.classList.add("gold-glow", "opacity-100");
-        video.controls = true;
-    } else { alert("Admin Şifresi Hatalı!"); }
-};
-
-window.kickUser = (uid) => { if(myUser.role === 'admin') remove(ref(db, "room1/users/" + uid)); };
-window.resetChat = () => { if(myUser.role === 'admin') remove(ref(db, "room1/chat")); };
-
-window.togglePlay = () => {
-    if(myUser.role !== 'admin') return;
-    const state = video.paused;
-    set(ref(db, "room1/video"), { playing: state, time: video.currentTime });
-    document.getElementById("play-btn").textContent = state ? "⏸" : "▶";
+        document.getElementById("settings-btn").textContent = "🏆";
+    }
 };
 
 window.seek = (s) => {
-    if(myUser.role !== 'admin') return;
     video.currentTime += s;
     set(ref(db, "room1/video"), { playing: !video.paused, time: video.currentTime });
 };
 
 window.sendMessage = () => {
-    const input = document.getElementById("chat-input");
-    if(!input.value) return;
-    push(ref(db, "room1/chat"), { user: myUser.name, avatar: myUser.avatar, text: input.value, role: myUser.role });
-    input.value = "";
+    const inp = document.getElementById("chat-input");
+    if(!inp.value) return;
+    push(ref(db, "room1/chat"), { user: myUser.name, avatar: myUser.avatar, text: inp.value });
+    inp.value = "";
 };
 
 window.sendEmoji = (icon) => set(ref(db, "room1/emojis"), { icon: icon, t: Date.now() });
@@ -238,6 +213,11 @@ function triggerEmoji(icon) {
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 2000);
 }
+
+window.showAdminModal = () => document.getElementById("admin-modal").classList.toggle("hidden");
+window.closeAdminModal = () => document.getElementById("admin-modal").classList.add("hidden");
+window.resetChat = () => remove(ref(db, "room1/chat"));
+window.kickUser = (uid) => remove(ref(db, "room1/users/" + uid));
 </script>
 </body>
 </html>
