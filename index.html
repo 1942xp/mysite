@@ -12,6 +12,7 @@ body {
   color: #fff;
   font-family: Arial, sans-serif;
 }
+
 #login {
   height: 100vh;
   display: flex;
@@ -19,34 +20,40 @@ body {
   justify-content: center;
   align-items: center;
 }
+
 input, button {
   padding: 10px;
   margin: 5px;
   font-size: 16px;
 }
+
 #app {
   display: none;
 }
+
 video {
   width: 100%;
   max-height: 60vh;
   background: black;
 }
+
 #chat {
   height: 25vh;
   overflow-y: auto;
   border-top: 1px solid #333;
   padding: 10px;
 }
+
+#chat div {
+  margin-bottom: 4px;
+}
+
 #chat input {
   width: 80%;
 }
+
 #chat button {
   width: 18%;
-}
-.system {
-  color: #aaa;
-  font-size: 13px;
 }
 </style>
 </head>
@@ -56,8 +63,10 @@ video {
 <!-- GİRİŞ -->
 <div id="login">
   <h2>🔐 Odaya Gir</h2>
-  <input id="roomPass" placeholder="Oda Şifresi">
+  <input id="enterPass" placeholder="Oda Şifresi">
+  <input id="adminPass" placeholder="Yönetici Şifresi (opsiyonel)">
   <button onclick="enterRoom()">Giriş Yap</button>
+  <div id="loginMsg"></div>
 </div>
 
 <!-- UYGULAMA -->
@@ -76,7 +85,7 @@ video {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import { getDatabase, ref, get, set, onValue, push } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDBechvUwDzQ5gD8cdiDN_qSObt7RFKKUg",
@@ -91,48 +100,55 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+const roomRef = ref(db, "room1");
 const video = document.getElementById("video");
 let isAdmin = false;
 
-window.enterRoom = () => {
-  const pass = roomPass.value;
-  if (!pass) return;
+// GİRİŞ
+window.enterRoom = async () => {
+  const enterVal = enterPass.value;
+  const adminVal = adminPass.value;
 
-  const adminRef = ref(db, "admin");
+  const snap = await get(roomRef);
+  const data = snap.val();
 
-  onValue(adminRef, snap => {
-    if (!snap.exists()) {
-      set(adminRef, pass);
-      isAdmin = true;
-    } else {
-      isAdmin = snap.val() === pass;
-    }
-  }, { onlyOnce: true });
+  if (enterVal !== data.enterPassword) {
+    loginMsg.textContent = "❌ Şifre yanlış";
+    return;
+  }
 
-  document.getElementById("login").style.display = "none";
-  document.getElementById("app").style.display = "block";
+  if (adminVal && adminVal === data.adminPassword) {
+    isAdmin = true;
+  }
+
+  login.style.display = "none";
+  app.style.display = "block";
 };
 
-const stateRef = ref(db, "video");
+// VİDEO SENKRON
+const stateRef = ref(db, "room1");
 
 video.addEventListener("play", () => {
-  if (isAdmin) set(stateRef, { playing: true, time: video.currentTime });
+  if (isAdmin) set(stateRef, { ...currentState, playing: true, time: video.currentTime });
 });
 video.addEventListener("pause", () => {
-  if (isAdmin) set(stateRef, { playing: false, time: video.currentTime });
+  if (isAdmin) set(stateRef, { ...currentState, playing: false, time: video.currentTime });
 });
 video.addEventListener("seeked", () => {
-  if (isAdmin) set(stateRef, { playing: !video.paused, time: video.currentTime });
+  if (isAdmin) set(stateRef, { ...currentState, time: video.currentTime });
 });
+
+let currentState = {};
 
 onValue(stateRef, snap => {
-  if (!snap.exists() || isAdmin) return;
-  const s = snap.val();
-  video.currentTime = s.time;
-  s.playing ? video.play() : video.pause();
+  currentState = snap.val();
+  if (isAdmin) return;
+  video.currentTime = currentState.time || 0;
+  currentState.playing ? video.play() : video.pause();
 });
 
-const chatRef = ref(db, "chat");
+// CHAT
+const chatRef = ref(db, "room1/chat");
 
 window.sendMsg = () => {
   if (!msg.value) return;
