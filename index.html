@@ -1,69 +1,99 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<title>Birlikte İzleme</title>
+  <meta charset="UTF-8">
+  <title>Birlikte İzleme</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body {
-  background:#111;
-  color:white;
-  text-align:center;
-  font-family:Arial;
-}
-video {
-  width:90%;
-  max-width:800px;
-  margin-top:20px;
-}
-</style>
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBechvUwDzQ5gD8cdiDN_qSObt7RFKKUg",
+      authDomain: "birlikte-izleme.firebaseapp.com",
+      databaseURL: "https://birlikte-izleme-default-rtdb.firebaseio.com",
+      projectId: "birlikte-izleme",
+      storageBucket: "birlikte-izleme.firebasestorage.app",
+      messagingSenderId: "488401543618",
+      appId: "1:488401543618:web:e758697faebdeabb64765b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.db = db;
+    window.ref = ref;
+    window.set = set;
+    window.onValue = onValue;
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    h1 {
+      margin: 10px 0;
+      font-size: 20px;
+    }
+    video {
+      width: 100%;
+      max-height: 90vh;
+      background: black;
+    }
+  </style>
 </head>
 
 <body>
 
-<h2>💙 Birlikte İzleme 💙</h2>
-<p>Aynı linki açan herkes senkron izler</p>
+  <h1>🎬 Birlikte İzleme</h1>
 
-<video id="video" controls>
-  <source src="video.mp4" type="video/mp4">
-</video>
+  <video id="video" controls>
+    <!-- ŞİMDİLİK AYNI VİDEO -->
+    <source src="video.mp4" type="video/mp4">
+  </video>
 
-<script>
-const video = document.getElementById("video");
-const KEY = "watch_sync";
+  <script>
+    const video = document.getElementById("video");
+    const syncRef = ref(db, "room1");
 
-// Play
-video.addEventListener("play", () => {
-  localStorage.setItem(KEY, JSON.stringify({
-    time: video.currentTime,
-    playing: true
-  }));
-});
+    let isRemote = false;
 
-// Pause
-video.addEventListener("pause", () => {
-  localStorage.setItem(KEY, JSON.stringify({
-    time: video.currentTime,
-    playing: false
-  }));
-});
+    function sendState() {
+      if (isRemote) return;
 
-// Senkron kontrol
-setInterval(() => {
-  const data = localStorage.getItem(KEY);
-  if (!data) return;
+      set(syncRef, {
+        playing: !video.paused,
+        time: video.currentTime,
+        updated: Date.now()
+      });
+    }
 
-  const sync = JSON.parse(data);
+    video.addEventListener("play", sendState);
+    video.addEventListener("pause", sendState);
+    video.addEventListener("seeked", sendState);
 
-  if (Math.abs(video.currentTime - sync.time) > 1) {
-    video.currentTime = sync.time;
-  }
+    onValue(syncRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
 
-  if (sync.playing && video.paused) video.play();
-  if (!sync.playing && !video.paused) video.pause();
+      isRemote = true;
 
-}, 1000);
-</script>
+      if (Math.abs(video.currentTime - data.time) > 0.3) {
+        video.currentTime = data.time;
+      }
+
+      if (data.playing && video.paused) video.play();
+      if (!data.playing && !video.paused) video.pause();
+
+      setTimeout(() => isRemote = false, 200);
+    });
+  </script>
 
 </body>
 </html>
