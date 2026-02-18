@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
+        * { box-sizing: border-box; }
         body { 
             font-family: 'Inter', sans-serif; 
             background: #020617; 
@@ -33,29 +34,30 @@
             position: relative; 
         }
         
-        /* Video Toast */
+        /* Video Toast - Sağ üst köşe */
         .video-toast { 
-            background: rgba(0, 0, 0, 0.6); 
-            backdrop-filter: blur(4px); 
-            padding: 6px 12px; 
-            border-radius: 8px; 
-            margin-bottom: 6px; 
-            animation: fadeInOut 4s forwards; 
-            border-right: 2px solid #3b82f6; 
-            max-width: 150px;
+            background: rgba(0, 0, 0, 0.7); 
+            backdrop-filter: blur(8px); 
+            padding: 8px 14px; 
+            border-radius: 10px; 
+            margin-bottom: 8px; 
+            animation: fadeInOut 5s forwards; 
+            border-right: 3px solid #3b82f6; 
+            max-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         @keyframes fadeInOut { 
-            0% { opacity: 0; transform: translateX(20px); } 
-            10% { opacity: 1; transform: translateX(0); } 
-            90% { opacity: 1; transform: translateX(0); } 
-            100% { opacity: 0; transform: translateX(20px); } 
+            0% { opacity: 0; transform: translateX(30px) scale(0.9); } 
+            10% { opacity: 1; transform: translateX(0) scale(1); } 
+            90% { opacity: 1; transform: translateX(0) scale(1); } 
+            100% { opacity: 0; transform: translateX(30px) scale(0.9); } 
         }
 
-        /* Emoji Paneli */
+        /* Emoji Paneli - Sadece tam ekranda */
         #emoji-drawer { 
             display: none; 
             position: absolute; 
-            top: 50px; 
+            top: 60px; 
             left: 10px; 
             z-index: 200; 
             grid-template-columns: repeat(4, 1fr); 
@@ -65,41 +67,43 @@
             width: 200px;
         }
         
-        /* MESAJ KUTUSU - Klavye için düzeltme */
+        /* MESAJ KUTUSU - Navigation bar için yukarı taşındı */
         .input-area { 
             background: #0f172a; 
             border-top: 1px solid rgba(255,255,255,0.1); 
-            padding-bottom: max(env(safe-area-inset-bottom), 10px);
+            padding-bottom: max(env(safe-area-inset-bottom), 20px);
+            padding-bottom: 35px; /* Xiaomi navigation bar için extra padding */
             position: relative;
             z-index: 50;
         }
 
-        /* Klavye açıkken input alanı */
+        /* Klavye açıkken */
         .input-area.keyboard-open {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
+            z-index: 1000;
             padding-bottom: 10px;
         }
 
-        /* Emoji Animasyonu */
+        /* Emoji Animasyonu - Tam ekranda da görünsün */
         .emoji-fly { 
             position: fixed; 
             bottom: 0; 
             pointer-events: none; 
             animation: flyUp 3s forwards; 
-            font-size: 2.5rem; 
-            z-index: 300; 
+            font-size: 3rem; 
+            z-index: 9999; 
             opacity: 0;
         }
         @keyframes flyUp { 
-            0% { opacity: 1; transform: translateY(0) scale(0.5); } 
-            20% { transform: translateY(-50px) scale(1.2); } 
-            100% { opacity: 0; transform: translateY(-100vh) scale(1); } 
+            0% { opacity: 1; transform: translateY(0) scale(0.5) rotate(0deg); } 
+            20% { transform: translateY(-80px) scale(1.3) rotate(10deg); } 
+            100% { opacity: 0; transform: translateY(-100vh) scale(1) rotate(20deg); } 
         }
 
-        /* Altın Kupa Parlaması */
+        /* Altın Kupa */
         .gold-glow {
             animation: goldPulse 2s infinite;
             color: #ffd700;
@@ -110,12 +114,18 @@
             50% { filter: drop-shadow(0 0 20px gold); }
         }
 
-        /* BÜYÜTME BUTONU - Yeni */
-        .expand-btn {
+        /* KONTROL BUTONLARI - Sağ altta */
+        .video-controls {
             position: absolute;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.6);
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 45;
+        }
+        
+        .control-btn {
+            background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.2);
             width: 44px;
@@ -125,41 +135,130 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 45;
             transition: all 0.3s ease;
         }
-        .expand-btn:hover {
-            background: rgba(0, 0, 0, 0.8);
+        .control-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
             transform: scale(1.1);
         }
-        .expand-btn svg {
-            width: 24px;
-            height: 24px;
+        .control-btn svg {
+            width: 22px;
+            height: 22px;
             fill: white;
         }
 
-        /* Çift tıklama için büyütme hint'i */
+        /* Emoji butonu - Sadece tam ekranda ve gizlenebilir */
+        #emoji-toggle-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 210;
+            background: rgba(0, 0, 0, 0.6);
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: none; /* Normalde gizli */
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+            font-size: 22px;
+            transition: opacity 0.3s;
+        }
+        
+        #emoji-toggle-btn.hidden-auto {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Çift tıklama ipucu */
         .double-tap-hint {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.7);
-            padding: 12px 20px;
-            border-radius: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 14px 24px;
+            border-radius: 25px;
             font-size: 14px;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s;
             z-index: 44;
+            white-space: nowrap;
         }
         .double-tap-hint.show {
             opacity: 1;
         }
 
-        /* Admin butonları */
+        /* Header düzeni - Ayar butonu taşındı */
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: #0f172a;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Ayar butonu header'da */
+        .settings-header-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .settings-header-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        .settings-header-btn.gold {
+            background: rgba(255, 215, 0, 0.2);
+            border-color: rgba(255, 215, 0, 0.5);
+        }
+
+        /* Admin seek butonları */
         #admin-seek-controls {
-            margin-right: 8px;
+            display: flex;
+            gap: 6px;
+        }
+        #admin-seek-controls button {
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* Tam ekran bildirim container'ı */
+        #fullscreen-toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            pointer-events: none;
+            display: none; /* Normalde gizli */
+        }
+        #fullscreen-toast-container.active {
+            display: flex;
+            flex-direction: column;
+            align-items: end;
         }
     </style>
 </head>
@@ -181,11 +280,11 @@
     
     <!-- Video Bölümü -->
     <div id="video-section">
-        <!-- Video Toast Container -->
+        <!-- Normal toast container -->
         <div id="video-toast-container" class="absolute top-2 right-2 z-50 pointer-events-none flex flex-col items-end"></div>
         
-        <!-- Emoji Butonu -->
-        <button onclick="toggleEmojiDrawer()" class="absolute left-3 top-3 z-[210] bg-black/50 w-10 h-10 rounded-full flex items-center justify-center border border-white/20 hover:bg-black/70 transition">😊</button>
+        <!-- Emoji Butonu - Sadece tam ekranda görünür -->
+        <button id="emoji-toggle-btn" onclick="toggleEmojiDrawer()">😊</button>
         
         <!-- Emoji Çekmecesi -->
         <div id="emoji-drawer" class="glass"></div>
@@ -201,47 +300,66 @@
         <!-- Çift Tıklama İpucu -->
         <div id="tap-hint" class="double-tap-hint">👆 Tam Ekran İçin Çift Tık</div>
         
-        <!-- BÜYÜTME BUTONU - Sağ altta -->
-        <button onclick="toggleFullscreen()" class="expand-btn" id="expand-btn">
-            <svg viewBox="0 0 24 24">
-                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-            </svg>
-        </button>
+        <!-- KONTROL BUTONLARI - Sağ altta -->
+        <div class="video-controls">
+            <!-- Ekran Çevirme Butonu -->
+            <button onclick="toggleOrientation()" class="control-btn" id="rotate-btn" title="Ekranı Çevir">
+                <svg viewBox="0 0 24 24">
+                    <path d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zm-6.25-.77c-.59-.59-1.54-.59-2.12 0L1.75 8.11c-.59.59-.59 1.54 0 2.12l12.02 12.02c.59.59 1.54.59 2.12 0l6.36-6.36c.59-.59.59-1.54 0-2.12L10.23 1.75zm4.6 19.44L2.81 9.17l6.36-6.36 12.02 12.02-6.36 6.36zm-7.31.29C4.25 19.94 1.91 16.76 1.55 13H.05C.56 19.16 5.71 24 12 24l.66-.03-3.81-3.81-1.33 1.32z"/>
+                </svg>
+            </button>
+            
+            <!-- Tam Ekran Butonu -->
+            <button onclick="toggleFullscreen()" class="control-btn" id="fullscreen-btn" title="Tam Ekran">
+                <svg viewBox="0 0 24 24" id="fullscreen-icon">
+                    <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                </svg>
+            </button>
+        </div>
     </div>
 
     <!-- Sohbet Bölümü -->
     <div id="chat-section">
-        <!-- Header -->
-        <div class="p-3 border-b border-white/5 flex justify-between items-center bg-slate-900 shrink-0">
-            <div class="flex items-center gap-2 text-xs">
-                <span id="my-avatar" class="text-lg"></span>
-                <span id="display-name" class="font-bold opacity-70"></span>
+        <!-- Header - Ayar butonu buraya taşındı -->
+        <div class="chat-header">
+            <div class="header-left">
+                <span id="my-avatar" class="text-2xl"></span>
+                <div>
+                    <span id="display-name" class="font-bold text-sm opacity-80 block"></span>
+                    <span class="text-[10px] opacity-50">Çevrimiçi</span>
+                </div>
             </div>
             
-            <div class="flex items-center">
-                <div id="admin-seek-controls" class="hidden flex gap-2 mr-2">
-                    <button onclick="seek(-15)" class="bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-slate-700 transition">-15s</button>
-                    <button onclick="seek(15)" class="bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-slate-700 transition">+15s</button>
+            <div class="header-right">
+                <!-- Admin Kontrolleri -->
+                <div id="admin-seek-controls" class="hidden">
+                    <button onclick="seek(-10)" class="bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-slate-700 transition">-10s</button>
+                    <button onclick="seek(10)" class="bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-slate-700 transition">+10s</button>
                 </div>
+                
+                <!-- Yönetici Badge -->
                 <div id="admin-badge" class="hidden text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-md font-bold border border-yellow-500/20 uppercase">Yönetici</div>
+                
+                <!-- Ayar Butonu - Buraya taşındı -->
+                <button id="settings-btn" onclick="showAdminModal()" class="settings-header-btn">⚙️</button>
             </div>
         </div>
 
         <!-- Mesajlar -->
         <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-0"></div>
         
-        <!-- Mesaj Giriş Alanı - Klavye için düzeltildi -->
+        <!-- Mesaj Giriş Alanı - Navigation bar için yukarı taşındı -->
         <div class="input-area px-4 py-3" id="input-container">
-            <div class="flex gap-2">
-                <input id="chat-input" type="text" placeholder="Mesaj yaz..." class="flex-1 bg-white/5 p-3 rounded-2xl outline-none border border-white/10 text-sm focus:border-blue-500/50 transition" onfocus="handleInputFocus()" onblur="handleInputBlur()" onkeypress="if(event.key==='Enter') sendMessage()">
-                <button onclick="sendMessage()" class="bg-blue-600 px-5 rounded-2xl font-bold text-sm hover:bg-blue-700 transition shrink-0">GÖNDER</button>
+            <div class="flex gap-2 items-center">
+                <input id="chat-input" type="text" placeholder="Mesaj yaz..." class="flex-1 bg-white/5 p-3 rounded-2xl outline-none border border-white/10 text-sm focus:border-blue-500/50 transition h-12" onfocus="handleInputFocus()" onblur="handleInputBlur()" onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()" class="bg-blue-600 px-5 rounded-2xl font-bold text-sm hover:bg-blue-700 transition h-12 shrink-0">GÖNDER</button>
             </div>
         </div>
     </div>
-
-    <!-- Admin Butonu -->
-    <button id="settings-btn" onclick="showAdminModal()" class="fixed bottom-28 right-4 w-12 h-12 bg-slate-800/80 rounded-full z-[100] border border-white/10 flex items-center justify-center text-xl hover:scale-110 transition">⚙️</button>
 </div>
+
+<!-- Tam Ekran Bildirim Container'ı -->
+<div id="fullscreen-toast-container"></div>
 
 <!-- Admin Modal -->
 <div id="admin-modal" class="fixed inset-0 bg-black/95 hidden flex items-center justify-center z-[600] p-6">
@@ -289,7 +407,12 @@ let myUser = {
     joinedAt: Date.now()
 };
 
+let isFullscreen = false;
+let emojiHideTimeout = null;
+let lastTap = 0;
+
 const video = document.getElementById("main-video");
+const videoSection = document.getElementById("video-section");
 const avatars = ["🐱","🐶","🦊","🦁","🐸","🤖","🦄","🐧","🐼","🐨","🐙","👻","🐵","🐥","🐝","🦖","🥨","🍕","🎈","🍔","🍦","🚀","🎸","🎮","👑","🧿","🍀","🔥","💎","🌈"];
 const emojis = ['😘','😂','🔥','❤️','😮','👏','💀','💯','🎉','👀','✨','🙌'];
 
@@ -326,39 +449,54 @@ emojis.forEach(e => {
     emDrawer.appendChild(b);
 });
 
+// EMOJI BUTONU GÖSTER/GİZLE (Tam ekranda)
+function showEmojiButton() {
+    const btn = document.getElementById('emoji-toggle-btn');
+    if(!isFullscreen) {
+        btn.style.display = 'none';
+        return;
+    }
+    btn.style.display = 'flex';
+    btn.classList.remove('hidden-auto');
+    
+    // 5 saniye sonra gizle
+    clearTimeout(emojiHideTimeout);
+    emojiHideTimeout = setTimeout(() => {
+        if(isFullscreen && !emDrawer.style.display === 'grid') {
+            btn.classList.add('hidden-auto');
+        }
+    }, 5000);
+}
+
+// Ekrana dokununca emoji butonunu tekrar göster
+videoSection.addEventListener('click', (e) => {
+    if(isFullscreen && !e.target.closest('#emoji-drawer') && !e.target.closest('.control-btn')) {
+        showEmojiButton();
+    }
+});
+
 window.toggleEmojiDrawer = () => {
     const d = document.getElementById("emoji-drawer");
     const isOpen = d.style.display === 'grid';
     d.style.display = isOpen ? 'none' : 'grid';
     
     if(!isOpen) {
-        setTimeout(() => {
-            document.addEventListener('click', function closeDrawer(ev) {
-                if(!d.contains(ev.target) && ev.target !== document.querySelector('button[onclick="toggleEmojiDrawer()"]')) {
-                    d.style.display = 'none';
-                    document.removeEventListener('click', closeDrawer);
-                }
-            });
-        }, 100);
+        clearTimeout(emojiHideTimeout); // Açıkken gizleme
+    } else {
+        showEmojiButton(); // Kapatınca 5sn sonra gizle
     }
 };
 
-// ÇİFT TIKLAMA ALGILAMA - Video bölgesi için
-let lastTap = 0;
-const videoSection = document.getElementById("video-section");
-
+// ÇİFT TIKLAMA
 videoSection.addEventListener('click', (e) => {
-    // Emoji butonu veya expand butonuna tıklanırsa ignore et
-    if(e.target.closest('#emoji-drawer') || e.target.closest('.expand-btn') || e.target.closest('button')) return;
+    if(e.target.closest('.control-btn') || e.target.closest('#emoji-toggle-btn') || e.target.closest('#emoji-drawer')) return;
     
     const currentTime = new Date().getTime();
     const tapLength = currentTime - lastTap;
     
     if(tapLength < 300 && tapLength > 0) {
-        // Çift tıklama algılandı
         toggleFullscreen();
     } else {
-        // Tek tıklama - hint göster
         const hint = document.getElementById('tap-hint');
         hint.classList.add('show');
         setTimeout(() => hint.classList.remove('show'), 1500);
@@ -366,61 +504,81 @@ videoSection.addEventListener('click', (e) => {
     lastTap = currentTime;
 });
 
-// TAM EKRAN FONKSİYONU
+// TAM EKRAN
 window.toggleFullscreen = async () => {
-    const expandBtn = document.getElementById('expand-btn');
-    
     if (!document.fullscreenElement) {
         try {
             await videoSection.requestFullscreen();
-            if (screen.orientation && screen.orientation.lock) {
-                await screen.orientation.lock("landscape").catch(() => {});
-            }
-            // Buton ikonunu değiştir (küçült ikonu)
-            expandBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>`;
+            isFullscreen = true;
+            document.getElementById('fullscreen-toast-container').classList.add('active');
+            showEmojiButton();
         } catch (e) {
             console.log("Fullscreen error:", e);
         }
     } else {
         if (document.exitFullscreen) {
-            document.exitFullscreen();
-            if (screen.orientation && screen.orientation.unlock) {
-                screen.orientation.unlock();
-            }
-            // Buton ikonunu değiştir (büyüt ikonu)
-            expandBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>`;
+            await document.exitFullscreen();
+            isFullscreen = false;
+            document.getElementById('fullscreen-toast-container').classList.remove('active');
+            document.getElementById('emoji-toggle-btn').style.display = 'none';
+            clearTimeout(emojiHideTimeout);
         }
+    }
+    updateFullscreenIcon();
+};
+
+// EKRAN ÇEVİRME (Manuel)
+window.toggleOrientation = async () => {
+    if (!screen.orientation) {
+        alert("Tarayıcınız ekran çevirmeyi desteklemiyor");
+        return;
+    }
+    
+    try {
+        const current = screen.orientation.type;
+        if (current.includes('portrait')) {
+            await screen.orientation.lock('landscape');
+        } else {
+            await screen.orientation.lock('portrait');
+        }
+    } catch (e) {
+        // Desteklenmiyorsa veya zaten kilitliyse
+        console.log("Orientation error:", e);
     }
 };
 
-// Tam ekran değişikliğini dinle
-document.addEventListener('fullscreenchange', () => {
-    const expandBtn = document.getElementById('expand-btn');
-    if (!document.fullscreenElement) {
-        expandBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>`;
+function updateFullscreenIcon() {
+    const icon = document.getElementById('fullscreen-icon');
+    if (document.fullscreenElement) {
+        icon.innerHTML = '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>';
+    } else {
+        icon.innerHTML = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
     }
+}
+
+document.addEventListener('fullscreenchange', () => {
+    isFullscreen = !!document.fullscreenElement;
+    if(!isFullscreen) {
+        document.getElementById('fullscreen-toast-container').classList.remove('active');
+        document.getElementById('emoji-toggle-btn').style.display = 'none';
+    } else {
+        showEmojiButton();
+    }
+    updateFullscreenIcon();
 });
 
-// KLAVYE SORUNU ÇÖZÜMÜ - Visual Viewport API
-const inputContainer = document.getElementById('input-container');
-const chatSection = document.getElementById('chat-section');
-
+// KLAVYE SORUNU ÇÖZÜMÜ
 function handleInputFocus() {
-    // Klavye açılma animasyonu için küçük gecikme
     setTimeout(() => {
         if (window.visualViewport) {
             const viewportHeight = window.visualViewport.height;
             const windowHeight = window.innerHeight;
             const keyboardHeight = windowHeight - viewportHeight;
             
-            if (keyboardHeight > 100) { // Klavye açık
-                inputContainer.style.position = 'fixed';
-                inputContainer.style.bottom = '0';
-                inputContainer.style.left = '0';
-                inputContainer.style.right = '0';
-                inputContainer.style.zIndex = '1000';
+            if (keyboardHeight > 100) {
+                const inputContainer = document.getElementById('input-container');
+                inputContainer.classList.add('keyboard-open');
                 
-                // Mesajları yukarı kaydır
                 const chatMessages = document.getElementById('chat-messages');
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
@@ -429,24 +587,16 @@ function handleInputFocus() {
 }
 
 function handleInputBlur() {
-    // Klavye kapandığında eski haline döndür
     setTimeout(() => {
-        inputContainer.style.position = '';
-        inputContainer.style.bottom = '';
-        inputContainer.style.left = '';
-        inputContainer.style.right = '';
-        inputContainer.style.zIndex = '';
+        document.getElementById('input-container').classList.remove('keyboard-open');
     }, 100);
 }
 
-// Visual Viewport değişikliklerini dinle (iOS/Android)
 if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', () => {
-        const chatMessages = document.getElementById('chat-messages');
-        // Input focus'taysa mesajları en alta kaydır
         if (document.activeElement === document.getElementById('chat-input')) {
             setTimeout(() => {
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
             }, 50);
         }
     });
@@ -495,6 +645,7 @@ window.checkEntry = async () => {
 function startApp() {
     let firstLoad = true;
     
+    // Sohbet dinleyicisi
     onValue(ref(db, "room1/chat"), snap => {
         const box = document.getElementById("chat-messages");
         box.innerHTML = "";
@@ -517,10 +668,17 @@ function startApp() {
         
         box.scrollTop = box.scrollHeight;
         
+        // BİLDİRİM SİSTEMİ
         if(!firstLoad && messages.length > 0) {
             const lastMsg = messages[messages.length - 1][1];
             if(lastMsg && lastMsg.user !== myUser.name) {
+                // Normal modda toast göster
                 showVideoToast(lastMsg.user, lastMsg.text, lastMsg.avatar);
+                
+                // Tam ekran modda sağ üstte özel toast göster
+                if(isFullscreen) {
+                    showFullscreenToast(lastMsg.user, lastMsg.text, lastMsg.avatar);
+                }
             }
         }
         firstLoad = false;
@@ -543,6 +701,7 @@ function startApp() {
         }
     });
 
+    // Emoji dinleyicisi - Her zaman animasyon göster (tam ekranda da)
     onValue(ref(db, "room1/emojis"), snap => { 
         if(snap.exists()) {
             const data = snap.val();
@@ -604,6 +763,7 @@ function startApp() {
     });
 }
 
+// Normal toast (video üzerinde)
 function showVideoToast(user, text, avatar) {
     const container = document.getElementById("video-toast-container");
     const t = document.createElement("div");
@@ -619,7 +779,27 @@ function showVideoToast(user, text, avatar) {
     setTimeout(() => {
         t.style.opacity = '0';
         setTimeout(() => t.remove(), 500);
-    }, 4000);
+    }, 5000);
+}
+
+// TAM EKRAN TOAST - Sağ üstte sabit 5 saniye
+function showFullscreenToast(user, text, avatar) {
+    const container = document.getElementById("fullscreen-toast-container");
+    const t = document.createElement("div");
+    t.className = "video-toast";
+    t.style.marginBottom = "10px";
+    t.innerHTML = `
+        <div class="flex items-center gap-2 mb-1">
+            <span class="text-lg">${avatar}</span>
+            <p class="text-xs font-bold text-blue-400">${user}</p>
+        </div>
+        <p class="text-sm leading-tight">${text}</p>
+    `;
+    container.appendChild(t);
+    setTimeout(() => {
+        t.style.opacity = '0';
+        setTimeout(() => t.remove(), 500);
+    }, 5000);
 }
 
 window.tryAdmin = async () => {
@@ -637,12 +817,9 @@ window.tryAdmin = async () => {
             
             const btn = document.getElementById("settings-btn");
             btn.textContent = "🏆";
-            btn.classList.add("gold-glow", "bg-yellow-500/20", "border-yellow-500/50");
-            btn.classList.remove("bg-slate-800/80");
+            btn.classList.add("gold-glow", "gold");
             
-            document.getElementById("video-touch-layer").style.display = "none";
             video.controls = true;
-            video.style.pointerEvents = "auto";
             
             set(ref(db, "room1/video"), { 
                 playing: !video.paused, 
@@ -681,7 +858,7 @@ window.sendMessage = () => {
     });
     
     inp.value = "";
-    inp.focus(); // Klavyeyi açık tut
+    inp.focus();
 };
 
 window.sendEmoji = (icon) => {
@@ -698,6 +875,10 @@ function triggerEmoji(icon) {
     el.className = "emoji-fly";
     el.textContent = icon;
     el.style.left = Math.random() * 60 + 20 + "%";
+    // Tam ekranda daha büyük göster
+    if(isFullscreen) {
+        el.style.fontSize = "4rem";
+    }
     document.body.appendChild(el);
     
     setTimeout(() => el.remove(), 3000);
@@ -728,7 +909,6 @@ window.kickUser = (uid) => {
     }
 };
 
-// Global fonksiyonları window'a ata
 window.handleInputFocus = handleInputFocus;
 window.handleInputBlur = handleInputBlur;
 </script>
