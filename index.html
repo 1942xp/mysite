@@ -1,30 +1,69 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>Birlikte İzleme 💙</title>
-  <style>
-    body {
-      background: #111;
-      color: white;
-      font-family: Arial;
-      text-align: center;
-    }
-    video {
-      width: 90%;
-      max-width: 720px;
-      margin-top: 20px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Birlikte İzleme</title>
+
+<style>
+body {
+  background:#111;
+  color:white;
+  text-align:center;
+  font-family:Arial;
+}
+video {
+  width:90%;
+  max-width:800px;
+  margin-top:20px;
+}
+</style>
 </head>
+
 <body>
 
 <h2>💙 Birlikte İzleme 💙</h2>
+<p>Aynı linki açan herkes senkron izler</p>
 
 <video id="video" controls>
   <source src="video.mp4" type="video/mp4">
-  Tarayıcın video etiketini desteklemiyor.
 </video>
+
+<script>
+const video = document.getElementById("video");
+const KEY = "watch_sync";
+
+// Play
+video.addEventListener("play", () => {
+  localStorage.setItem(KEY, JSON.stringify({
+    time: video.currentTime,
+    playing: true
+  }));
+});
+
+// Pause
+video.addEventListener("pause", () => {
+  localStorage.setItem(KEY, JSON.stringify({
+    time: video.currentTime,
+    playing: false
+  }));
+});
+
+// Senkron kontrol
+setInterval(() => {
+  const data = localStorage.getItem(KEY);
+  if (!data) return;
+
+  const sync = JSON.parse(data);
+
+  if (Math.abs(video.currentTime - sync.time) > 1) {
+    video.currentTime = sync.time;
+  }
+
+  if (sync.playing && video.paused) video.play();
+  if (!sync.playing && !video.paused) video.pause();
+
+}, 1000);
+</script>
 
 </body>
 </html>
