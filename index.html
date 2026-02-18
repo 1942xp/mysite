@@ -34,7 +34,7 @@
             position: relative; 
         }
         
-        /* Video Toast - Sağ üst köşe */
+        /* Video Toast */
         .video-toast { 
             background: rgba(0, 0, 0, 0.7); 
             backdrop-filter: blur(8px); 
@@ -53,7 +53,7 @@
             100% { opacity: 0; transform: translateX(30px) scale(0.9); } 
         }
 
-        /* Emoji Paneli - Sadece tam ekranda */
+        /* Emoji Paneli */
         #emoji-drawer { 
             display: none; 
             position: absolute; 
@@ -67,12 +67,11 @@
             width: 200px;
         }
         
-        /* MESAJ KUTUSU - Navigation bar için yukarı taşındı */
+        /* MESAJ KUTUSU - Navigation bar için düzeltme */
         .input-area { 
             background: #0f172a; 
             border-top: 1px solid rgba(255,255,255,0.1); 
-            padding-bottom: max(env(safe-area-inset-bottom), 20px);
-            padding-bottom: 35px; /* Xiaomi navigation bar için extra padding */
+            padding: 12px 16px 80px 16px; /* Yukarıdan 12px, aşağıdan 80px (navigasyon için) */
             position: relative;
             z-index: 50;
         }
@@ -84,10 +83,10 @@
             left: 0;
             right: 0;
             z-index: 1000;
-            padding-bottom: 10px;
+            padding-bottom: 20px;
         }
 
-        /* Emoji Animasyonu - Tam ekranda da görünsün */
+        /* Emoji Animasyonu */
         .emoji-fly { 
             position: fixed; 
             bottom: 0; 
@@ -114,7 +113,7 @@
             50% { filter: drop-shadow(0 0 20px gold); }
         }
 
-        /* KONTROL BUTONLARI - Sağ altta */
+        /* KONTROL BUTONLARI */
         .video-controls {
             position: absolute;
             bottom: 15px;
@@ -147,7 +146,7 @@
             fill: white;
         }
 
-        /* Emoji butonu - Sadece tam ekranda ve gizlenebilir */
+        /* Emoji butonu - Normalde görünür, tam ekranda gizlenebilir */
         #emoji-toggle-btn {
             position: absolute;
             top: 15px;
@@ -157,7 +156,7 @@
             width: 44px;
             height: 44px;
             border-radius: 12px;
-            display: none; /* Normalde gizli */
+            display: flex;
             align-items: center;
             justify-content: center;
             border: 1px solid rgba(255,255,255,0.2);
@@ -171,27 +170,7 @@
             pointer-events: none;
         }
 
-        /* Çift tıklama ipucu */
-        .double-tap-hint {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            padding: 14px 24px;
-            border-radius: 25px;
-            font-size: 14px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-            z-index: 44;
-            white-space: nowrap;
-        }
-        .double-tap-hint.show {
-            opacity: 1;
-        }
-
-        /* Header düzeni - Ayar butonu taşındı */
+        /* Header düzeni */
         .chat-header {
             display: flex;
             justify-content: space-between;
@@ -199,6 +178,7 @@
             padding: 12px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
             background: #0f172a;
+            flex-shrink: 0;
         }
         
         .header-left {
@@ -215,16 +195,16 @@
 
         /* Ayar butonu header'da */
         .settings-header-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             background: rgba(255,255,255,0.1);
             border: 1px solid rgba(255,255,255,0.1);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
             transition: all 0.3s;
         }
         .settings-header-btn:hover {
@@ -235,10 +215,13 @@
             border-color: rgba(255, 215, 0, 0.5);
         }
 
-        /* Admin seek butonları */
+        /* Admin seek butonları - Sadece admin görsün */
         #admin-seek-controls {
-            display: flex;
+            display: none; /* Başlangıçta gizli */
             gap: 6px;
+        }
+        #admin-seek-controls.visible {
+            display: flex;
         }
         #admin-seek-controls button {
             padding: 6px 12px;
@@ -253,7 +236,7 @@
             right: 20px;
             z-index: 9999;
             pointer-events: none;
-            display: none; /* Normalde gizli */
+            display: none;
         }
         #fullscreen-toast-container.active {
             display: flex;
@@ -283,7 +266,7 @@
         <!-- Normal toast container -->
         <div id="video-toast-container" class="absolute top-2 right-2 z-50 pointer-events-none flex flex-col items-end"></div>
         
-        <!-- Emoji Butonu - Sadece tam ekranda görünür -->
+        <!-- Emoji Butonu - Normalde görünür -->
         <button id="emoji-toggle-btn" onclick="toggleEmojiDrawer()">😊</button>
         
         <!-- Emoji Çekmecesi -->
@@ -297,10 +280,7 @@
         <!-- Video Dokunma Katmanı -->
         <div id="video-touch-layer" class="absolute inset-0 z-40"></div>
         
-        <!-- Çift Tıklama İpucu -->
-        <div id="tap-hint" class="double-tap-hint">👆 Tam Ekran İçin Çift Tık</div>
-        
-        <!-- KONTROL BUTONLARI - Sağ altta -->
+        <!-- KONTROL BUTONLARI -->
         <div class="video-controls">
             <!-- Ekran Çevirme Butonu -->
             <button onclick="toggleOrientation()" class="control-btn" id="rotate-btn" title="Ekranı Çevir">
@@ -320,7 +300,7 @@
 
     <!-- Sohbet Bölümü -->
     <div id="chat-section">
-        <!-- Header - Ayar butonu buraya taşındı -->
+        <!-- Header -->
         <div class="chat-header">
             <div class="header-left">
                 <span id="my-avatar" class="text-2xl"></span>
@@ -331,8 +311,8 @@
             </div>
             
             <div class="header-right">
-                <!-- Admin Kontrolleri -->
-                <div id="admin-seek-controls" class="hidden">
+                <!-- Admin Kontrolleri - Sadece admin görür -->
+                <div id="admin-seek-controls">
                     <button onclick="seek(-10)" class="bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-slate-700 transition">-10s</button>
                     <button onclick="seek(10)" class="bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-400 hover:bg-slate-700 transition">+10s</button>
                 </div>
@@ -340,7 +320,7 @@
                 <!-- Yönetici Badge -->
                 <div id="admin-badge" class="hidden text-[10px] bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-md font-bold border border-yellow-500/20 uppercase">Yönetici</div>
                 
-                <!-- Ayar Butonu - Buraya taşındı -->
+                <!-- Ayar Butonu -->
                 <button id="settings-btn" onclick="showAdminModal()" class="settings-header-btn">⚙️</button>
             </div>
         </div>
@@ -348,8 +328,8 @@
         <!-- Mesajlar -->
         <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-0"></div>
         
-        <!-- Mesaj Giriş Alanı - Navigation bar için yukarı taşındı -->
-        <div class="input-area px-4 py-3" id="input-container">
+        <!-- Mesaj Giriş Alanı - Düzeltilmiş padding -->
+        <div class="input-area" id="input-container">
             <div class="flex gap-2 items-center">
                 <input id="chat-input" type="text" placeholder="Mesaj yaz..." class="flex-1 bg-white/5 p-3 rounded-2xl outline-none border border-white/10 text-sm focus:border-blue-500/50 transition h-12" onfocus="handleInputFocus()" onblur="handleInputBlur()" onkeypress="if(event.key==='Enter') sendMessage()">
                 <button onclick="sendMessage()" class="bg-blue-600 px-5 rounded-2xl font-bold text-sm hover:bg-blue-700 transition h-12 shrink-0">GÖNDER</button>
@@ -449,28 +429,25 @@ emojis.forEach(e => {
     emDrawer.appendChild(b);
 });
 
-// EMOJI BUTONU GÖSTER/GİZLE (Tam ekranda)
+// EMOJI BUTONU YÖNETİMİ
 function showEmojiButton() {
     const btn = document.getElementById('emoji-toggle-btn');
-    if(!isFullscreen) {
-        btn.style.display = 'none';
-        return;
-    }
-    btn.style.display = 'flex';
     btn.classList.remove('hidden-auto');
     
-    // 5 saniye sonra gizle
-    clearTimeout(emojiHideTimeout);
-    emojiHideTimeout = setTimeout(() => {
-        if(isFullscreen && !emDrawer.style.display === 'grid') {
-            btn.classList.add('hidden-auto');
-        }
-    }, 5000);
+    // Tam ekrandaysa 5 saniye sonra gizle
+    if(isFullscreen) {
+        clearTimeout(emojiHideTimeout);
+        emojiHideTimeout = setTimeout(() => {
+            if(!emDrawer.style.display === 'grid') {
+                btn.classList.add('hidden-auto');
+            }
+        }, 5000);
+    }
 }
 
-// Ekrana dokununca emoji butonunu tekrar göster
+// Ekrana dokununca emoji butonunu göster (tam ekran modunda)
 videoSection.addEventListener('click', (e) => {
-    if(isFullscreen && !e.target.closest('#emoji-drawer') && !e.target.closest('.control-btn')) {
+    if(isFullscreen && !e.target.closest('#emoji-drawer') && !e.target.closest('.control-btn') && !e.target.closest('#emoji-toggle-btn')) {
         showEmojiButton();
     }
 });
@@ -482,12 +459,12 @@ window.toggleEmojiDrawer = () => {
     
     if(!isOpen) {
         clearTimeout(emojiHideTimeout); // Açıkken gizleme
-    } else {
+    } else if(isFullscreen) {
         showEmojiButton(); // Kapatınca 5sn sonra gizle
     }
 };
 
-// ÇİFT TIKLAMA
+// ÇİFT TIKLAMA - Sadece tam ekran yap, hint gösterme
 videoSection.addEventListener('click', (e) => {
     if(e.target.closest('.control-btn') || e.target.closest('#emoji-toggle-btn') || e.target.closest('#emoji-drawer')) return;
     
@@ -496,10 +473,6 @@ videoSection.addEventListener('click', (e) => {
     
     if(tapLength < 300 && tapLength > 0) {
         toggleFullscreen();
-    } else {
-        const hint = document.getElementById('tap-hint');
-        hint.classList.add('show');
-        setTimeout(() => hint.classList.remove('show'), 1500);
     }
     lastTap = currentTime;
 });
@@ -511,7 +484,7 @@ window.toggleFullscreen = async () => {
             await videoSection.requestFullscreen();
             isFullscreen = true;
             document.getElementById('fullscreen-toast-container').classList.add('active');
-            showEmojiButton();
+            showEmojiButton(); // Emoji butonu 5sn sonra gizlenecek
         } catch (e) {
             console.log("Fullscreen error:", e);
         }
@@ -520,14 +493,14 @@ window.toggleFullscreen = async () => {
             await document.exitFullscreen();
             isFullscreen = false;
             document.getElementById('fullscreen-toast-container').classList.remove('active');
-            document.getElementById('emoji-toggle-btn').style.display = 'none';
+            document.getElementById('emoji-toggle-btn').classList.remove('hidden-auto');
             clearTimeout(emojiHideTimeout);
         }
     }
     updateFullscreenIcon();
 };
 
-// EKRAN ÇEVİRME (Manuel)
+// EKRAN ÇEVİRME
 window.toggleOrientation = async () => {
     if (!screen.orientation) {
         alert("Tarayıcınız ekran çevirmeyi desteklemiyor");
@@ -542,7 +515,6 @@ window.toggleOrientation = async () => {
             await screen.orientation.lock('portrait');
         }
     } catch (e) {
-        // Desteklenmiyorsa veya zaten kilitliyse
         console.log("Orientation error:", e);
     }
 };
@@ -560,7 +532,8 @@ document.addEventListener('fullscreenchange', () => {
     isFullscreen = !!document.fullscreenElement;
     if(!isFullscreen) {
         document.getElementById('fullscreen-toast-container').classList.remove('active');
-        document.getElementById('emoji-toggle-btn').style.display = 'none';
+        document.getElementById('emoji-toggle-btn').classList.remove('hidden-auto');
+        clearTimeout(emojiHideTimeout);
     } else {
         showEmojiButton();
     }
@@ -570,19 +543,15 @@ document.addEventListener('fullscreenchange', () => {
 // KLAVYE SORUNU ÇÖZÜMÜ
 function handleInputFocus() {
     setTimeout(() => {
-        if (window.visualViewport) {
-            const viewportHeight = window.visualViewport.height;
-            const windowHeight = window.innerHeight;
-            const keyboardHeight = windowHeight - viewportHeight;
-            
-            if (keyboardHeight > 100) {
-                const inputContainer = document.getElementById('input-container');
-                inputContainer.classList.add('keyboard-open');
-                
-                const chatMessages = document.getElementById('chat-messages');
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-        }
+        const inputContainer = document.getElementById('input-container');
+        inputContainer.classList.add('keyboard-open');
+        
+        // Mesajları en alta kaydır
+        const chatMessages = document.getElementById('chat-messages');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // Input'u görünür alana getir
+        document.getElementById('chat-input').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }, 100);
 }
 
@@ -645,7 +614,6 @@ window.checkEntry = async () => {
 function startApp() {
     let firstLoad = true;
     
-    // Sohbet dinleyicisi
     onValue(ref(db, "room1/chat"), snap => {
         const box = document.getElementById("chat-messages");
         box.innerHTML = "";
@@ -672,10 +640,8 @@ function startApp() {
         if(!firstLoad && messages.length > 0) {
             const lastMsg = messages[messages.length - 1][1];
             if(lastMsg && lastMsg.user !== myUser.name) {
-                // Normal modda toast göster
                 showVideoToast(lastMsg.user, lastMsg.text, lastMsg.avatar);
                 
-                // Tam ekran modda sağ üstte özel toast göster
                 if(isFullscreen) {
                     showFullscreenToast(lastMsg.user, lastMsg.text, lastMsg.avatar);
                 }
@@ -684,12 +650,18 @@ function startApp() {
         firstLoad = false;
     });
 
+    // VIDEO SENKRONİZASYONU - Admin kontrolü düzeltildi
     onValue(ref(db, "room1/video"), snap => {
-        if(myUser.role === 'admin') return;
-        
         const s = snap.val();
         if(!s) return;
         
+        // Admin ise sadece DB'ye yaz, videoya müdahale etme
+        if(myUser.role === 'admin') {
+            // Admin kendi oynatma durumunu kontrol eder, DB'den geleni uygulamaz
+            return;
+        }
+        
+        // Normal kullanıcı: DB'den geleni uygula
         if(Math.abs(video.currentTime - s.time) > 2.5) {
             video.currentTime = s.time;
         }
@@ -701,7 +673,7 @@ function startApp() {
         }
     });
 
-    // Emoji dinleyicisi - Her zaman animasyon göster (tam ekranda da)
+    // Emoji dinleyicisi
     onValue(ref(db, "room1/emojis"), snap => { 
         if(snap.exists()) {
             const data = snap.val();
@@ -744,26 +716,24 @@ function startApp() {
         });
     });
     
-    video.addEventListener('play', () => {
-        if(myUser.role === 'admin') {
+    // ADMIN VIDEO KONTROLÜ - Düzeltildi
+    if(myUser.role === 'admin') {
+        video.controls = true;
+        
+        video.addEventListener('play', () => {
             set(ref(db, "room1/video"), { playing: true, time: video.currentTime });
-        }
-    });
-    
-    video.addEventListener('pause', () => {
-        if(myUser.role === 'admin') {
+        });
+        
+        video.addEventListener('pause', () => {
             set(ref(db, "room1/video"), { playing: false, time: video.currentTime });
-        }
-    });
-    
-    video.addEventListener('seeked', () => {
-        if(myUser.role === 'admin') {
+        });
+        
+        video.addEventListener('seeked', () => {
             set(ref(db, "room1/video"), { playing: !video.paused, time: video.currentTime });
-        }
-    });
+        });
+    }
 }
 
-// Normal toast (video üzerinde)
 function showVideoToast(user, text, avatar) {
     const container = document.getElementById("video-toast-container");
     const t = document.createElement("div");
@@ -782,7 +752,6 @@ function showVideoToast(user, text, avatar) {
     }, 5000);
 }
 
-// TAM EKRAN TOAST - Sağ üstte sabit 5 saniye
 function showFullscreenToast(user, text, avatar) {
     const container = document.getElementById("fullscreen-toast-container");
     const t = document.createElement("div");
@@ -812,15 +781,30 @@ window.tryAdmin = async () => {
             
             document.getElementById("admin-login-view").classList.add("hidden");
             document.getElementById("admin-panel-view").classList.remove("hidden");
-            document.getElementById("admin-seek-controls").classList.remove("hidden");
+            document.getElementById("admin-seek-controls").classList.add("visible");
             document.getElementById("admin-badge").classList.remove("hidden");
             
             const btn = document.getElementById("settings-btn");
             btn.textContent = "🏆";
             btn.classList.add("gold-glow", "gold");
             
+            // Admin video kontrollerini aktif et
             video.controls = true;
             
+            // Event listener'ları ekle
+            video.addEventListener('play', () => {
+                set(ref(db, "room1/video"), { playing: true, time: video.currentTime });
+            });
+            
+            video.addEventListener('pause', () => {
+                set(ref(db, "room1/video"), { playing: false, time: video.currentTime });
+            });
+            
+            video.addEventListener('seeked', () => {
+                set(ref(db, "room1/video"), { playing: !video.paused, time: video.currentTime });
+            });
+            
+            // İlk durumu ayarla
             set(ref(db, "room1/video"), { 
                 playing: !video.paused, 
                 time: video.currentTime 
@@ -875,7 +859,6 @@ function triggerEmoji(icon) {
     el.className = "emoji-fly";
     el.textContent = icon;
     el.style.left = Math.random() * 60 + 20 + "%";
-    // Tam ekranda daha büyük göster
     if(isFullscreen) {
         el.style.fontSize = "4rem";
     }
