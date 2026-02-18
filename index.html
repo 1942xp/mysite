@@ -1,82 +1,67 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Birlikte İzleme</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body>
+<body style="background:#111;color:#fff;text-align:center">
 
-<h2>🎬 Birlikte İzleme</h2>
+  <h2>🎬 Birlikte İzleme</h2>
 
-<video id="video" width="100%" controls>
-  <source src="video.mp4" type="video/mp4">
-</video>
+  <video id="video" width="95%" controls>
+    <source src="video.mp4" type="video/mp4">
+  </video>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDBechvUwDzQ5gD8cdiDN_qSObt7RFKKUg",
-    authDomain: "birlikte-izleme.firebaseapp.com",
-    databaseURL: "https://birlikte-izleme-default-rtdb.firebaseio.com",
-    projectId: "birlikte-izleme",
-    storageBucket: "birlikte-izleme.firebasestorage.app",
-    messagingSenderId: "488401543618",
-    appId: "1:488401543618:web:e758697faebdeabb64765b"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBechvUwDzQ5gD8cdiDN_qSObt7RFKKUg",
+      authDomain: "birlikte-izleme.firebaseapp.com",
+      databaseURL: "https://birlikte-izleme-default-rtdb.firebaseio.com",
+      projectId: "birlikte-izleme",
+      storageBucket: "birlikte-izleme.firebasestorage.app",
+      messagingSenderId: "488401543618",
+      appId: "1:488401543618:web:e758697faebdeabb64765b"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  const video = document.getElementById("video");
-  const roomRef = ref(db, "room1");
+    const video = document.getElementById("video");
+    const roomRef = ref(db, "room1");
 
-  let isRemote = false;
-
-  // 🎯 LOCAL → FIREBASE
-  video.addEventListener("play", () => {
-    if (isRemote) return;
-    set(roomRef, {
-      playing: true,
-      time: video.currentTime
+    // VIDEO OYNATILDI
+    video.addEventListener("play", () => {
+      set(roomRef, {
+        playing: true,
+        time: video.currentTime
+      });
     });
-  });
 
-  video.addEventListener("pause", () => {
-    if (isRemote) return;
-    set(roomRef, {
-      playing: false,
-      time: video.currentTime
+    // VIDEO DURDU
+    video.addEventListener("pause", () => {
+      set(roomRef, {
+        playing: false,
+        time: video.currentTime
+      });
     });
-  });
 
-  video.addEventListener("seeked", () => {
-    if (isRemote) return;
-    set(roomRef, {
-      playing: !video.paused,
-      time: video.currentTime
+    // FIREBASE'DEN DİNLE
+    onValue(roomRef, (snap) => {
+      const data = snap.val();
+      if (!data) return;
+
+      if (Math.abs(video.currentTime - data.time) > 0.5) {
+        video.currentTime = data.time;
+      }
+
+      if (data.playing && video.paused) video.play();
+      if (!data.playing && !video.paused) video.pause();
     });
-  });
-
-  // 🔁 FIREBASE → REMOTE
-  onValue(roomRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
-
-    isRemote = true;
-
-    if (Math.abs(video.currentTime - data.time) > 0.5) {
-      video.currentTime = data.time;
-    }
-
-    if (data.playing && video.paused) video.play();
-    if (!data.playing && !video.paused) video.pause();
-
-    setTimeout(() => isRemote = false, 300);
-  });
-</script>
+  </script>
 
 </body>
 </html>
