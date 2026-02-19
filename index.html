@@ -107,6 +107,7 @@
             50% { filter: drop-shadow(0 0 20px gold); }
         }
 
+        /* KONTROLLER - Gizlenebilir */
         .video-controls {
             position: absolute;
             bottom: 15px;
@@ -114,6 +115,12 @@
             display: flex;
             gap: 10px;
             z-index: 45;
+            transition: opacity 0.3s;
+        }
+        
+        .video-controls.hidden-auto {
+            opacity: 0;
+            pointer-events: none;
         }
         
         .control-btn {
@@ -139,14 +146,12 @@
             fill: white;
         }
 
-        /* PLAY/PAUSE BUTONU - Yeni */
         #play-pause-btn {
             background: rgba(255, 193, 7, 0.9);
             border: 2px solid rgba(255, 215, 0, 0.5);
         }
         #play-pause-btn:hover {
             background: rgba(255, 193, 7, 1);
-            transform: scale(1.1);
         }
         #play-pause-btn svg {
             fill: #000;
@@ -245,7 +250,6 @@
             align-items: end;
         }
 
-        /* Video URL Input Stili */
         .url-input {
             width: 100%;
             background: #1e293b;
@@ -259,6 +263,22 @@
         .url-input:focus {
             outline: none;
             border-color: #3b82f6;
+        }
+
+        /* İZLEYİCİ İLK PLAY OVERLAY */
+        #viewer-play-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9998;
+            flex-direction: column;
+            gap: 15px;
+        }
+        #viewer-play-overlay.visible {
+            display: flex;
         }
     </style>
 </head>
@@ -283,34 +303,40 @@
         
         <div id="emoji-drawer" class="glass"></div>
 
-        <!-- GOOGLE DRIVE VİDEO - Dinamik src -->
+        <!-- VİDEO - Drive URL dinamik -->
         <video id="main-video"
                class="w-full h-full object-contain"
                playsinline
                webkit-playsinline
-               preload="metadata"
+               preload="auto"
                crossorigin="anonymous">
             <source src="" type="video/mp4">
         </video>
         
+        <!-- İZLEYİCİ İLK PLAY BUTONU -->
+        <div id="viewer-play-overlay">
+            <button onclick="viewerFirstPlay()" class="bg-green-500 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:scale-105 transition flex items-center gap-3">
+                <span>▶</span>
+                <span>İzlemeye Başla</span>
+            </button>
+            <p class="text-white/60 text-sm">Videoyu başlatmak için tıklayın</p>
+        </div>
+        
         <div id="video-touch-layer" class="absolute inset-0 z-40"></div>
         
-        <div class="video-controls">
-            <!-- PLAY/PAUSE BUTONU - Yeni -->
+        <div class="video-controls" id="video-controls">
             <button onclick="togglePlayPause()" class="control-btn" id="play-pause-btn" style="display: none;">
                 <svg viewBox="0 0 24 24" id="play-icon">
                     <path d="M8 5v14l11-7z"/>
                 </svg>
             </button>
 
-            <!-- Ekran Çevirme -->
             <button onclick="toggleOrientation()" class="control-btn" id="rotate-btn">
                 <svg viewBox="0 0 24 24">
                     <path d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zm-6.25-.77c-.59-.59-1.54-.59-2.12 0L1.75 8.11c-.59.59-.59 1.54 0 2.12l12.02 12.02c.59.59 1.54.59 2.12 0l6.36-6.36c.59-.59.59-1.54 0-2.12L10.23 1.75zm4.6 19.44L2.81 9.17l6.36-6.36 12.02 12.02-6.36 6.36zm-7.31.29C4.25 19.94 1.91 16.76 1.55 13H.05C.56 19.16 5.71 24 12 24l.66-.03-3.81-3.81-1.33 1.32z"/>
                 </svg>
             </button>
             
-            <!-- Tam Ekran -->
             <button onclick="toggleFullscreen()" class="control-btn" id="fullscreen-btn">
                 <svg viewBox="0 0 24 24" id="fullscreen-icon">
                     <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
@@ -365,12 +391,11 @@
         <div id="admin-panel-view" class="hidden space-y-4">
             <h3 class="text-center font-bold text-yellow-500 mb-2">🏆 YÖNETİCİ PANELİ</h3>
             
-            <!-- VIDEO URL GİRİŞİ - Yeni -->
             <div class="border-t border-white/10 pt-3">
                 <p class="text-xs text-gray-400 mb-2 font-bold">🎬 VİDEO URL (Google Drive)</p>
                 <input type="text" id="video-url-input" placeholder="https://drive.google.com/file/d/..." class="url-input">
                 <button onclick="updateVideoUrl()" class="w-full bg-blue-600/20 text-blue-400 p-2 rounded-lg font-bold text-xs hover:bg-blue-600/30 transition border border-blue-500/20 mb-2">VİDEOYU YÜKLE</button>
-                <p class="text-[10px] text-gray-500">Drive linkini yapıştır: https://drive.google.com/file/d/VIDEO_ID/view</p>
+                <p class="text-[10px] text-gray-500">Not: Drive videosu için "Herkes bağlantıya sahip olanlar görüntüleyebilir" ayarı şart</p>
             </div>
 
             <button onclick="resetChat()" class="w-full bg-red-600/20 text-red-500 p-3 rounded-lg font-bold text-sm hover:bg-red-600/30 transition border border-red-500/20">🗑️ SOHBETİ TEMİZLE</button>
@@ -412,10 +437,10 @@ let myUser = {
 
 let isFullscreen = false;
 let emojiHideTimeout = null;
+let controlsHideTimeout = null;
 let lastTap = 0;
 let adminListenersAdded = false;
-let adminPlayStarted = false;
-let currentVideoUrl = "";
+let viewerPlayStarted = false;
 
 const video = document.getElementById("main-video");
 const videoSection = document.getElementById("video-section");
@@ -455,35 +480,43 @@ emojis.forEach(e => {
     emDrawer.appendChild(b);
 });
 
-function showEmojiButton() {
-    const btn = document.getElementById('emoji-toggle-btn');
+// UI ELEMANLARINI GÖSTER/GİZLE (Tam ekran modunda)
+function showControls() {
+    const controls = document.getElementById('video-controls');
+    const emojiBtn = document.getElementById('emoji-toggle-btn');
     const drawer = document.getElementById('emoji-drawer');
-
-    btn.classList.remove('hidden-auto');
-
-    if (isFullscreen) {
-        clearTimeout(emojiHideTimeout);
-        emojiHideTimeout = setTimeout(() => {
-            if (drawer.style.display !== 'grid') {
-                btn.classList.add('hidden-auto');
-            }
-        }, 5000);
-    }
+    
+    controls.classList.remove('hidden-auto');
+    emojiBtn.classList.remove('hidden-auto');
+    
+    // 5 saniye sonra gizle (eğer açık değilse)
+    clearTimeout(controlsHideTimeout);
+    controlsHideTimeout = setTimeout(() => {
+        if (drawer.style.display !== 'grid') {
+            controls.classList.add('hidden-auto');
+            emojiBtn.classList.add('hidden-auto');
+        }
+    }, 5000);
 }
 
+// Tek click handler (çift tık + tek tık)
 videoSection.addEventListener('click', (e) => {
     if (
         e.target.closest('.control-btn') ||
         e.target.closest('#emoji-toggle-btn') ||
-        e.target.closest('#emoji-drawer')
+        e.target.closest('#emoji-drawer') ||
+        e.target.closest('#viewer-play-overlay')
     ) return;
 
     const now = Date.now();
     
+    // Çift tık = fullscreen
     if (now - lastTap < 300) {
         toggleFullscreen();
-    } else if (isFullscreen) {
-        showEmojiButton();
+    } 
+    // Tek tık = kontrolleri göster (tam ekrandaysa)
+    else if (isFullscreen) {
+        showControls();
     }
     
     lastTap = now;
@@ -495,13 +528,29 @@ window.toggleEmojiDrawer = () => {
     d.style.display = isOpen ? 'none' : 'grid';
     
     if(!isOpen) {
-        clearTimeout(emojiHideTimeout);
+        clearTimeout(controlsHideTimeout);
     } else if(isFullscreen) {
-        showEmojiButton();
+        showControls();
     }
 };
 
-// PLAY/PAUSE TOGGLE - Yeni
+// İZLEYİCİ İLK PLAY
+window.viewerFirstPlay = async () => {
+    try {
+        await video.play();
+        viewerPlayStarted = true;
+        document.getElementById("viewer-play-overlay").classList.remove("visible");
+        
+        // Firebase'den senkronize olmaya başla
+        setupVideoSync();
+        
+    } catch (e) {
+        console.log("Viewer play error:", e);
+        alert("Video başlatılamadı. Lütfen tekrar deneyin.");
+    }
+};
+
+// PLAY/PAUSE (Sadece admin)
 window.togglePlayPause = async () => {
     if(myUser.role !== 'admin') return;
     
@@ -520,24 +569,30 @@ window.togglePlayPause = async () => {
 function updatePlayPauseIcon() {
     const icon = document.getElementById('play-icon');
     if(video.paused) {
-        icon.innerHTML = '<path d="M8 5v14l11-7z"/>'; // Play ikonu
+        icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
     } else {
-        icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'; // Pause ikonu
+        icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
     }
 }
 
-// Video durum değişikliğini dinle
+// Video event'leri
 video.addEventListener('play', () => {
     updatePlayPauseIcon();
-    if(myUser.role === 'admin' && adminPlayStarted) {
+    if(myUser.role === 'admin') {
         set(ref(db, "room1/video"), { playing: true, time: video.currentTime });
     }
 });
 
 video.addEventListener('pause', () => {
     updatePlayPauseIcon();
-    if(myUser.role === 'admin' && adminPlayStarted) {
+    if(myUser.role === 'admin') {
         set(ref(db, "room1/video"), { playing: false, time: video.currentTime });
+    }
+});
+
+video.addEventListener('seeked', () => {
+    if(myUser.role === 'admin') {
+        set(ref(db, "room1/video"), { playing: !video.paused, time: video.currentTime });
     }
 });
 
@@ -547,7 +602,7 @@ window.toggleFullscreen = async () => {
             await videoSection.requestFullscreen();
             isFullscreen = true;
             document.getElementById('fullscreen-toast-container').classList.add('active');
-            showEmojiButton();
+            showControls();
         } catch (e) {
             console.log("Fullscreen error:", e);
         }
@@ -556,19 +611,15 @@ window.toggleFullscreen = async () => {
             await document.exitFullscreen();
             isFullscreen = false;
             document.getElementById('fullscreen-toast-container').classList.remove('active');
+            document.getElementById('video-controls').classList.remove('hidden-auto');
             document.getElementById('emoji-toggle-btn').classList.remove('hidden-auto');
-            clearTimeout(emojiHideTimeout);
+            clearTimeout(controlsHideTimeout);
         }
     }
-    updateFullscreenIcon();
 };
 
 window.toggleOrientation = async () => {
-    if (!screen.orientation) {
-        alert("Tarayıcınız ekran çevirmeyi desteklemiyor");
-        return;
-    }
-    
+    if (!screen.orientation) return;
     try {
         const current = screen.orientation.type;
         if (current.includes('portrait')) {
@@ -581,36 +632,10 @@ window.toggleOrientation = async () => {
     }
 };
 
-function updateFullscreenIcon() {
-    const icon = document.getElementById('fullscreen-icon');
-    if (document.fullscreenElement) {
-        icon.innerHTML = '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>';
-    } else {
-        icon.innerHTML = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
-    }
-}
-
-document.addEventListener('fullscreenchange', () => {
-    isFullscreen = !!document.fullscreenElement;
-    if(!isFullscreen) {
-        document.getElementById('fullscreen-toast-container').classList.remove('active');
-        document.getElementById('emoji-toggle-btn').classList.remove('hidden-auto');
-        clearTimeout(emojiHideTimeout);
-    } else {
-        showEmojiButton();
-    }
-    updateFullscreenIcon();
-});
-
 function handleInputFocus() {
     setTimeout(() => {
-        const inputContainer = document.getElementById('input-container');
-        inputContainer.classList.add('keyboard-open');
-        
-        const chatMessages = document.getElementById('chat-messages');
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        
-        document.getElementById('chat-input').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        document.getElementById('input-container').classList.add('keyboard-open');
+        document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
     }, 100);
 }
 
@@ -618,16 +643,6 @@ function handleInputBlur() {
     setTimeout(() => {
         document.getElementById('input-container').classList.remove('keyboard-open');
     }, 100);
-}
-
-if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-        if (document.activeElement === document.getElementById('chat-input')) {
-            setTimeout(() => {
-                document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
-            }, 50);
-        }
-    });
 }
 
 window.checkEntry = async () => {
@@ -651,14 +666,17 @@ window.checkEntry = async () => {
             document.getElementById("my-avatar").textContent = myUser.avatar;
             document.getElementById("display-name").textContent = name;
             
+            // Kullanıcıyı ekle - SADECE BURADA
             const userRef = ref(db, "room1/users/" + myUser.id);
             await set(userRef, { 
                 name: name, 
                 avatar: myUser.avatar,
-                joinedAt: myUser.joinedAt 
+                joinedAt: Date.now() // Her girişte yenile
             });
             
+            // Sadece bu oturum için temizlik ayarla
             onDisconnect(userRef).remove();
+            
             startApp();
         } else {
             alert("Şifre Hatalı!");
@@ -669,7 +687,7 @@ window.checkEntry = async () => {
     }
 };
 
-// VIDEO URL GÜNCELLEME - Yeni
+// VIDEO URL GÜNCELLEME
 window.updateVideoUrl = async () => {
     const urlInput = document.getElementById('video-url-input').value.trim();
     
@@ -678,58 +696,80 @@ window.updateVideoUrl = async () => {
         return;
     }
     
-    // Drive URL'sini doğru formata çevir
     let videoId = "";
     
-    // Format 1: https://drive.google.com/file/d/VIDEO_ID/view
     if(urlInput.includes('/file/d/')) {
-        const match = urlInput.match(/\/file\/d\/([^\/]+)/);
+        const match = urlInput.match(/\/file\/d\/([^\/\?]+)/);
         if(match) videoId = match[1];
-    }
-    // Format 2: https://drive.google.com/open?id=VIDEO_ID
-    else if(urlInput.includes('open?id=')) {
+    } else if(urlInput.includes('open?id=')) {
         const match = urlInput.match(/open\?id=([^&]+)/);
         if(match) videoId = match[1];
-    }
-    // Format 3: Direkt ID
-    else if(urlInput.length > 20 && !urlInput.includes('/')) {
+    } else if(urlInput.length > 20 && !urlInput.includes('/')) {
         videoId = urlInput;
     }
     
     if(!videoId) {
-        alert("Geçersiz Google Drive linki! Örnek: https://drive.google.com/file/d/ABC123/view");
+        alert("Geçersiz Google Drive linki!");
         return;
     }
     
-    // Doğru format: https://drive.google.com/uc?export=download&id=VIDEO_ID
-    const correctUrl = `https://drive.google.com/uc?export=download&id=${videoId}`;
+    // ALTERNATİF FORMATLAR DENE
+    const formats = [
+        `https://drive.google.com/uc?export=download&id=${videoId}`,
+        `https://drive.usercontent.google.com/download?id=${videoId}`,
+        `https://www.googleapis.com/drive/v3/files/${videoId}?alt=media&key=YOUR_API_KEY`
+    ];
     
-    // Firebase'e kaydet
     await set(ref(db, "room1/videoUrl"), {
-        url: correctUrl,
         id: videoId,
+        formats: formats,
         updatedBy: myUser.name,
         updatedAt: Date.now()
     });
     
-    alert("Video URL güncellendi! Tüm kullanıcılara yansıyacak.");
+    alert("Video URL güncellendi!");
 };
+
+let videoSyncSetup = false;
+
+function setupVideoSync() {
+    if(videoSyncSetup) return;
+    
+    onValue(ref(db, "room1/video"), snap => {
+        const s = snap.val();
+        if (!s) return;
+        if (myUser.role === 'admin') return;
+        if (!viewerPlayStarted) return; // Henüz başlatmadıysa senkronize olma
+
+        if (Math.abs(video.currentTime - s.time) > 1) {
+            video.currentTime = s.time;
+        }
+
+        if (s.playing && video.paused) {
+            video.play().catch(() => {});
+        }
+        if (!s.playing && !video.paused) {
+            video.pause();
+        }
+    });
+    
+    videoSyncSetup = true;
+}
 
 function startApp() {
     let firstLoad = true;
     
-    // Video URL'sini dinle
+    // Video URL dinle
     onValue(ref(db, "room1/videoUrl"), snap => {
         const data = snap.val();
-        if(data && data.url) {
-            const video = document.getElementById('main-video');
+        if(data && data.formats && data.formats[0]) {
             const source = video.querySelector('source');
+            source.src = data.formats[0];
+            video.load();
             
-            // URL değiştiyse güncelle
-            if(source.src !== data.url) {
-                source.src = data.url;
-                video.load();
-                console.log("Video URL güncellendi:", data.url);
+            // İzleyici için overlay göster
+            if(myUser.role !== 'admin' && !viewerPlayStarted) {
+                document.getElementById("viewer-play-overlay").classList.add("visible");
             }
         }
     });
@@ -759,31 +799,10 @@ function startApp() {
         if(!firstLoad && messages.length > 0) {
             const lastMsg = messages[messages.length - 1][1];
             if(lastMsg && lastMsg.user !== myUser.name) {
-                showVideoToast(lastMsg.user, lastMsg.text, lastMsg.avatar);
-                
-                if(isFullscreen) {
-                    showFullscreenToast(lastMsg.user, lastMsg.text, lastMsg.avatar);
-                }
+                showToast(lastMsg.user, lastMsg.text, lastMsg.avatar);
             }
         }
         firstLoad = false;
-    });
-
-    onValue(ref(db, "room1/video"), snap => {
-        const s = snap.val();
-        if (!s) return;
-        if (myUser.role === 'admin') return;
-
-        if (Math.abs(video.currentTime - s.time) > 1) {
-            video.currentTime = s.time;
-        }
-
-        if (s.playing && video.paused) {
-            video.play().catch(() => {});
-        }
-        if (!s.playing && !video.paused) {
-            video.pause();
-        }
     });
 
     onValue(ref(db, "room1/emojis"), snap => { 
@@ -795,75 +814,66 @@ function startApp() {
         }
     });
     
-    onValue(ref(db, "room1/users/" + myUser.id), snap => { 
-        if(!snap.exists()) {
-            alert("Odadan atıldınız!");
-            location.reload(); 
-        }
-    });
-    
+    // KICK KONTROLÜ - SADECE BAŞKALARI TARAFINDAN
     onValue(ref(db, "room1/users"), snap => {
         const list = document.getElementById("user-kick-list");
         list.innerHTML = "";
         
-        if(!snap.exists()) {
-            list.innerHTML = '<p class="text-xs text-gray-500 text-center py-2">Aktif kullanıcı yok</p>';
-            return;
-        }
+        let userExists = false;
+        let userCount = 0;
         
         snap.forEach(u => {
-            const userData = u.val();
-            if(u.key !== myUser.id) {
+            userCount++;
+            if(u.key === myUser.id) {
+                userExists = true;
+            }
+            
+            // Kick listesi (sadece admin için)
+            if(myUser.role === 'admin' && u.key !== myUser.id) {
+                const userData = u.val();
                 const div = document.createElement("div");
-                div.className = "flex justify-between items-center bg-white/5 p-2 rounded-lg text-xs hover:bg-white/10 transition";
+                div.className = "flex justify-between items-center bg-white/5 p-2 rounded-lg text-xs";
                 div.innerHTML = `
                     <div class="flex items-center gap-2">
                         <span>${userData.avatar}</span>
-                        <span class="truncate max-w-[100px]">${userData.name}</span>
+                        <span>${userData.name}</span>
                     </div>
-                    <button onclick="kickUser('${u.key}')" class="bg-red-500/20 text-red-400 px-2 py-1 rounded font-bold hover:bg-red-500/40 transition text-[10px]">AT</button>
+                    <button onclick="kickUser('${u.key}')" class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-[10px]">AT</button>
                 `;
                 list.appendChild(div);
             }
         });
+        
+        // Eğer kendi kaydım yoksa ve başka kullanıcı varsa (kick edilmişim)
+        if(!userExists && userCount > 0 && !firstLoad) {
+            alert("Odadan atıldınız!");
+            location.reload();
+        }
     });
 }
 
-function showVideoToast(user, text, avatar) {
+function showToast(user, text, avatar) {
+    // Normal toast
     const container = document.getElementById("video-toast-container");
     const t = document.createElement("div");
     t.className = "video-toast";
     t.innerHTML = `
-        <div class="flex items-center gap-1 mb-0.5">
-            <span class="text-xs">${avatar}</span>
-            <p class="text-[9px] font-bold text-blue-400 uppercase tracking-wider">${user}</p>
+        <div class="flex items-center gap-1">
+            <span>${avatar}</span>
+            <p class="text-[9px] font-bold text-blue-400">${user}</p>
         </div>
-        <p class="text-[11px] truncate leading-tight">${text}</p>
+        <p class="text-[11px]">${text}</p>
     `;
     container.appendChild(t);
-    setTimeout(() => {
-        t.style.opacity = '0';
-        setTimeout(() => t.remove(), 500);
-    }, 5000);
-}
-
-function showFullscreenToast(user, text, avatar) {
-    const container = document.getElementById("fullscreen-toast-container");
-    const t = document.createElement("div");
-    t.className = "video-toast";
-    t.style.marginBottom = "10px";
-    t.innerHTML = `
-        <div class="flex items-center gap-2 mb-1">
-            <span class="text-lg">${avatar}</span>
-            <p class="text-xs font-bold text-blue-400">${user}</p>
-        </div>
-        <p class="text-sm leading-tight">${text}</p>
-    `;
-    container.appendChild(t);
-    setTimeout(() => {
-        t.style.opacity = '0';
-        setTimeout(() => t.remove(), 500);
-    }, 5000);
+    setTimeout(() => t.remove(), 5000);
+    
+    // Fullscreen toast
+    if(isFullscreen) {
+        const fsContainer = document.getElementById("fullscreen-toast-container");
+        const fsT = t.cloneNode(true);
+        fsContainer.appendChild(fsT);
+        setTimeout(() => fsT.remove(), 5000);
+    }
 }
 
 function triggerEmoji(icon) {
@@ -871,14 +881,10 @@ function triggerEmoji(icon) {
     el.className = "emoji-fly";
     el.textContent = icon;
     el.style.left = Math.random() * 60 + 20 + "%";
-
-    if (isFullscreen) {
-        el.style.fontSize = "4rem";
-    }
-
+    if (isFullscreen) el.style.fontSize = "4rem";
+    
     const target = document.fullscreenElement || document.body;
     target.appendChild(el);
-
     setTimeout(() => el.remove(), 3000);
 }
 
@@ -894,21 +900,17 @@ window.tryAdmin = async () => {
             document.getElementById("admin-panel-view").classList.remove("hidden");
             document.getElementById("admin-seek-controls").classList.add("visible");
             document.getElementById("admin-badge").classList.remove("hidden");
-            
-            // Play/Pause butonunu göster
             document.getElementById("play-pause-btn").style.display = "flex";
             
             const btn = document.getElementById("settings-btn");
             btn.textContent = "🏆";
             btn.classList.add("gold-glow", "gold");
             
-            // Video URL input'unu doldur (varsa)
+            // URL varsa input'a yaz
             const urlSnap = await get(ref(db, "room1/videoUrl"));
             if(urlSnap.exists()) {
-                document.getElementById("video-url-input").value = urlSnap.val().url || "";
+                document.getElementById("video-url-input").value = urlSnap.val().formats[0] || "";
             }
-            
-            console.log("Admin yetkisi aktif.");
             
         } else {
             alert("Yanlış şifre!");
@@ -920,7 +922,6 @@ window.tryAdmin = async () => {
 
 window.seek = (seconds) => {
     if(myUser.role !== 'admin') return;
-    
     video.currentTime += seconds;
     set(ref(db, "room1/video"), { 
         playing: !video.paused, 
@@ -931,7 +932,6 @@ window.seek = (seconds) => {
 window.sendMessage = () => {
     const inp = document.getElementById("chat-input");
     const text = inp.value.trim();
-    
     if(!text) return;
     
     push(ref(db, "room1/chat"), { 
@@ -974,7 +974,7 @@ window.resetChat = () => {
 };
 
 window.kickUser = (uid) => {
-    if(confirm("Bu kullanıcıyı odadan atmak istediğinize emin misiniz?")) {
+    if(confirm("Bu kullanıcıyı atmak istediğinize emin misiniz?")) {
         remove(ref(db, "room1/users/" + uid));
     }
 };
