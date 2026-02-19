@@ -8,234 +8,67 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; }
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: #020617; 
-            color: white; 
-            margin: 0; 
-            height: 100vh; 
-            overflow: hidden; 
-        }
-        .glass { 
-            background: rgba(15, 23, 42, 0.9); 
-            backdrop-filter: blur(15px); 
-            border: 1px solid rgba(255,255,255,0.1); 
-        }
-        #video-section { 
-            height: 35vh; 
-            background: #000; 
-            position: relative; 
-            overflow: hidden; 
-        }
-        #chat-section { 
-            height: 65vh; 
-            display: flex; 
-            flex-direction: column; 
-            position: relative; 
-        }
+        body { font-family: 'Inter', sans-serif; background: #020617; color: white; margin: 0; height: 100vh; overflow: hidden; }
+        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); }
+        #video-section { height: 35vh; background: #000; position: relative; overflow: hidden; }
+        #chat-section { height: 65vh; display: flex; flex-direction: column; position: relative; }
         
-        .video-toast { 
-            background: rgba(0, 0, 0, 0.7); 
-            backdrop-filter: blur(8px); 
-            padding: 8px 14px; 
-            border-radius: 10px; 
-            margin-bottom: 8px; 
-            animation: fadeInOut 5s forwards; 
-            border-right: 3px solid #3b82f6; 
-            max-width: 180px;
-        }
-        @keyframes fadeInOut { 
-            0% { opacity: 0; transform: translateX(30px); } 
-            10% { opacity: 1; transform: translateX(0); } 
-            90% { opacity: 1; transform: translateX(0); } 
-            100% { opacity: 0; transform: translateX(30px); } 
-        }
+        .video-toast { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); padding: 8px 14px; border-radius: 10px; margin-bottom: 8px; animation: fadeInOut 5s forwards; border-right: 3px solid #3b82f6; max-width: 180px; }
+        @keyframes fadeInOut { 0% { opacity: 0; transform: translateX(30px); } 10% { opacity: 1; transform: translateX(0); } 90% { opacity: 1; transform: translateX(0); } 100% { opacity: 0; transform: translateX(30px); } }
 
-        #emoji-drawer { 
-            display: none; 
-            position: absolute; 
-            top: 60px; 
-            left: 10px; 
-            z-index: 200; 
-            grid-template-columns: repeat(4, 1fr); 
-            gap: 8px; 
-            padding: 12px; 
-            border-radius: 15px; 
-            width: 200px;
-        }
+        #emoji-drawer { display: none; position: absolute; top: 60px; left: 10px; z-index: 200; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; border-radius: 15px; width: 200px; }
         
-        .input-area { 
-            background: #0f172a; 
-            border-top: 1px solid rgba(255,255,255,0.1); 
-            padding: 12px 16px 80px 16px;
-            position: relative;
-            z-index: 50;
-        }
+        .input-area { background: #0f172a; border-top: 1px solid rgba(255,255,255,0.1); padding: 12px 16px 80px 16px; position: relative; z-index: 50; }
+        .input-area.keyboard-open { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000; padding-bottom: 20px; }
 
-        .input-area.keyboard-open {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            padding-bottom: 20px;
-        }
+        .emoji-fly { position: fixed; bottom: 0; pointer-events: none; animation: flyUp 3s forwards; font-size: 3rem; z-index: 9999; opacity: 0; }
+        @keyframes flyUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-100vh); } }
 
-        .emoji-fly { 
-            position: fixed; 
-            bottom: 0; 
-            pointer-events: none; 
-            animation: flyUp 3s forwards; 
-            font-size: 3rem; 
-            z-index: 9999; 
-            opacity: 0;
-        }
-        @keyframes flyUp { 
-            0% { opacity: 1; transform: translateY(0); } 
-            100% { opacity: 0; transform: translateY(-100vh); } 
-        }
+        .gold-glow { animation: goldPulse 2s infinite; color: #ffd700; }
+        @keyframes goldPulse { 0%, 100% { filter: drop-shadow(0 0 5px gold); } 50% { filter: drop-shadow(0 0 20px gold); } }
 
-        .gold-glow {
-            animation: goldPulse 2s infinite;
-            color: #ffd700;
-        }
-        @keyframes goldPulse {
-            0%, 100% { filter: drop-shadow(0 0 5px gold); }
-            50% { filter: drop-shadow(0 0 20px gold); }
-        }
-
-        .video-controls {
-            position: absolute;
-            bottom: 15px;
-            right: 15px;
-            display: flex;
-            gap: 10px;
-            z-index: 45;
-            transition: opacity 0.3s;
-        }
-        .video-controls.hidden-auto {
-            opacity: 0;
-            pointer-events: none;
-        }
+        .video-controls { position: absolute; bottom: 15px; right: 15px; display: flex; gap: 10px; z-index: 45; transition: opacity 0.3s; }
+        .video-controls.hidden-auto { opacity: 0; pointer-events: none; }
         
-        .control-btn {
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
+        .control-btn { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; }
+        .control-btn:hover { background: rgba(0, 0, 0, 0.9); transform: scale(1.1); }
 
-        #play-pause-btn {
-            background: rgba(255, 193, 7, 0.9);
-            border-color: rgba(255, 215, 0, 0.5);
+        /* İZLEYİCİ BAŞLAT BUTONU - Yeşil, tek kullanımlık */
+        #viewer-start-btn { 
+            background: rgba(34, 197, 94, 0.9); 
+            border-color: rgba(34, 197, 94, 0.5);
+            display: none; /* Başlangıçta gizli */
         }
+        #viewer-start-btn:hover { background: rgba(34, 197, 94, 1); }
+        #viewer-start-btn:disabled { 
+            opacity: 0.5; 
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        #viewer-start-btn svg { fill: white; }
 
-        #emoji-toggle-btn {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            z-index: 210;
-            background: rgba(0, 0, 0, 0.6);
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid rgba(255,255,255,0.2);
-            cursor: pointer;
-            font-size: 22px;
-            transition: opacity 0.3s;
-        }
-        #emoji-toggle-btn.hidden-auto {
-            opacity: 0;
-            pointer-events: none;
-        }
+        /* ADMIN PLAY/PAUSE - Sarı */
+        #play-pause-btn { background: rgba(255, 193, 7, 0.9); border-color: rgba(255, 215, 0, 0.5); display: none; }
+        #play-pause-btn:hover { background: rgba(255, 193, 7, 1); }
+        #play-pause-btn svg { fill: #000; }
 
-        .chat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            background: #0f172a;
-            flex-shrink: 0;
-        }
-        
+        #emoji-toggle-btn { position: absolute; top: 15px; left: 15px; z-index: 210; background: rgba(0, 0, 0, 0.6); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; font-size: 22px; transition: opacity 0.3s; }
+        #emoji-toggle-btn.hidden-auto { opacity: 0; pointer-events: none; }
+
+        .chat-header { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); background: #0f172a; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 10px; }
         .header-right { display: flex; align-items: center; gap: 8px; }
 
-        .settings-header-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 18px;
-            transition: all 0.3s;
-        }
-        .settings-header-btn.gold {
-            background: rgba(255, 215, 0, 0.2);
-            border-color: rgba(255, 215, 0, 0.5);
-        }
+        .settings-header-btn { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; transition: all 0.3s; }
+        .settings-header-btn.gold { background: rgba(255, 215, 0, 0.2); border-color: rgba(255, 215, 0, 0.5); }
 
         #admin-seek-controls { display: none; gap: 6px; }
         #admin-seek-controls.visible { display: flex; }
 
-        #fullscreen-toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            pointer-events: none;
-            display: none;
-        }
+        #fullscreen-toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; pointer-events: none; display: none; }
         #fullscreen-toast-container.active { display: flex; flex-direction: column; align-items: end; }
 
-        .url-input {
-            width: 100%;
-            background: #1e293b;
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 10px;
-            border-radius: 8px;
-            color: white;
-            font-size: 12px;
-            margin-bottom: 10px;
-        }
-
-        #viewer-play-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9998;
-            flex-direction: column;
-            gap: 15px;
-        }
-        #viewer-play-overlay.visible { display: flex; }
-
-        /* Video layer - Admin değilse tıklanabilir ama kontrolsüz */
-        #video-touch-layer {
-            position: absolute;
-            inset: 0;
-            z-index: 40;
-        }
-        #video-touch-layer.admin-mode {
-            pointer-events: none;
-        }
+        .url-input { width: 100%; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; color: white; font-size: 12px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -262,22 +95,24 @@
             <source src="" type="video/mp4">
         </video>
         
-        <div id="viewer-play-overlay">
-            <button onclick="viewerFirstPlay()" class="bg-green-500 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg hover:scale-105 transition flex items-center gap-3">
-                <span>▶</span>
-                <span>İzlemeye Başla</span>
-            </button>
-            <p class="text-white/60 text-sm">Videoyu başlatmak için tıklayın</p>
-        </div>
-        
-        <div id="video-touch-layer"></div>
-        
         <div class="video-controls" id="video-controls">
-            <button onclick="togglePlayPause()" class="control-btn" id="play-pause-btn" style="display: none;">
+            <!-- İZLEYİCİ BAŞLAT (Tek kullanımlık) -->
+            <button onclick="viewerStart()" class="control-btn" id="viewer-start-btn" title="Videoyu Başlat">
+                <svg viewBox="0 0 24 24" width="24" height="24"><path d="M8 5v14l11-7z" fill="white"/></svg>
+            </button>
+
+            <!-- ADMIN PLAY/PAUSE -->
+            <button onclick="togglePlayPause()" class="control-btn" id="play-pause-btn">
                 <svg viewBox="0 0 24 24" id="play-icon" width="24" height="24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
             </button>
-            <button onclick="toggleOrientation()" class="control-btn"><svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zm-6.25-.77c-.59-.59-1.54-.59-2.12 0L1.75 8.11c-.59.59-.59 1.54 0 2.12l12.02 12.02c.59.59 1.54.59 2.12 0l6.36-6.36c.59-.59.59-1.54 0-2.12L10.23 1.75zm4.6 19.44L2.81 9.17l6.36-6.36 12.02 12.02-6.36 6.36z"/></svg></button>
-            <button onclick="toggleFullscreen()" class="control-btn"><svg viewBox="0 0 24 24" id="fullscreen-icon" width="22" height="22" fill="white"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>
+
+            <button onclick="toggleOrientation()" class="control-btn" title="Ekranı Çevir">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zm-6.25-.77c-.59-.59-1.54-.59-2.12 0L1.75 8.11c-.59.59-.59 1.54 0 2.12l12.02 12.02c.59.59 1.54.59 2.12 0l6.36-6.36c.59-.59.59-1.54 0-2.12L10.23 1.75zm4.6 19.44L2.81 9.17l6.36-6.36 12.02 12.02-6.36 6.36z"/></svg>
+            </button>
+            
+            <button onclick="toggleFullscreen()" class="control-btn" title="Tam Ekran">
+                <svg viewBox="0 0 24 24" id="fullscreen-icon" width="22" height="22" fill="white"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
         </div>
     </div>
 
@@ -327,7 +162,6 @@
                 <p class="text-xs text-gray-400 mb-2 font-bold">🎬 VİDEO URL (Google Drive)</p>
                 <input type="text" id="video-url-input" placeholder="https://drive.google.com/file/d/..." class="url-input">
                 <button onclick="updateVideoUrl()" class="w-full bg-blue-600/20 text-blue-400 p-2 rounded-lg font-bold text-xs hover:bg-blue-600/30 transition border border-blue-500/20 mb-2">VİDEOYU YÜKLE</button>
-                <p class="text-[10px] text-gray-500">Sadece çalışan format: drive.google.com/uc?export=download&id=</p>
             </div>
             <button onclick="resetChat()" class="w-full bg-red-600/20 text-red-500 p-3 rounded-lg font-bold text-sm hover:bg-red-600/30 transition border border-red-500/20">🗑️ SOHBETİ TEMİZLE</button>
             <div class="border-t border-white/10 pt-3">
@@ -358,10 +192,9 @@ const db = getDatabase(app);
 
 let myUser = { id: Math.random().toString(36).substr(2, 9), name: "", avatar: "👤", role: "user", joinedAt: Date.now() };
 let isFullscreen = false;
-let emojiHideTimeout = null;
 let controlsHideTimeout = null;
 let lastTap = 0;
-let viewerPlayStarted = false;
+let viewerStarted = false; // İzleyici başlattı mı?
 let videoSyncActive = false;
 
 const video = document.getElementById("main-video");
@@ -413,9 +246,9 @@ function showControls() {
     }
 }
 
-// Click handler (tekli/çift)
+// Click handler
 videoSection.addEventListener('click', (e) => {
-    if (e.target.closest('.control-btn') || e.target.closest('#emoji-toggle-btn') || e.target.closest('#emoji-drawer') || e.target.closest('#viewer-play-overlay')) return;
+    if (e.target.closest('.control-btn') || e.target.closest('#emoji-toggle-btn') || e.target.closest('#emoji-drawer')) return;
     
     const now = Date.now();
     if (now - lastTap < 300) {
@@ -434,21 +267,34 @@ window.toggleEmojiDrawer = () => {
     else if(isFullscreen) showControls();
 };
 
-// İzleyici ilk play
-window.viewerFirstPlay = async () => {
+// 🔥 İZLEYİCİ BAŞLAT - Tek kullanımlık!
+window.viewerStart = async () => {
+    if(viewerStarted) return; // Zaten başlatılmışsa çık
+    
+    const btn = document.getElementById('viewer-start-btn');
+    
     try {
+        // Önce Firebase'den son durumu al
+        const snap = await get(ref(db, "room1/video"));
+        if(snap.exists()) {
+            const s = snap.val();
+            video.currentTime = s.time || 0;
+        }
+        
+        // Videoyu başlat
         await video.play();
         video.muted = false;
-        video.currentTime = video.currentTime; // Safari kick
         
-        viewerPlayStarted = true;
-        document.getElementById("viewer-play-overlay").classList.remove("visible");
+        viewerStarted = true;
+        btn.disabled = true; // Butonu pasif yap
+        btn.style.opacity = "0.3";
+        btn.title = "Zaten başlatıldı";
         
         // Senkronu başlat
         if(!videoSyncActive) setupVideoSync();
         
-    } catch (e) {
-        console.log("Viewer play error:", e);
+    } catch(e) {
+        console.log("Viewer start error:", e);
         alert("Video başlatılamadı. Tekrar deneyin.");
     }
 };
@@ -468,7 +314,7 @@ function updatePlayPauseIcon() {
     icon.innerHTML = video.paused ? '<path d="M8 5v14l11-7z" fill="currentColor"/>' : '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" fill="currentColor"/>';
 }
 
-// Video event'leri - SADECE UPDATE kullan (race condition önleme)
+// Video event'leri
 video.addEventListener('play', () => {
     updatePlayPauseIcon();
     if(myUser.role === 'admin') {
@@ -555,7 +401,6 @@ window.checkEntry = async () => {
     } catch(e) { console.error(e); alert("Bağlantı hatası!"); }
 };
 
-// Video URL güncelleme - SADECE ÇALIŞAN FORMAT
 window.updateVideoUrl = async () => {
     const urlInput = document.getElementById('video-url-input').value.trim();
     if(!urlInput) { alert("URL girin!"); return; }
@@ -567,13 +412,10 @@ window.updateVideoUrl = async () => {
     } else if(urlInput.includes('open?id=')) {
         const match = urlInput.match(/open\?id=([^&]+)/);
         if(match) videoId = match[1];
-    } else if(urlInput.length > 20 && !urlInput.includes('/')) {
-        videoId = urlInput;
     }
     
     if(!videoId) { alert("Geçersiz Drive linki!"); return; }
     
-    // SADECE ÇALIŞAN FORMAT
     const correctUrl = `https://drive.google.com/uc?export=download&id=${videoId}`;
     
     await update(ref(db, "room1/videoUrl"), {
@@ -586,7 +428,6 @@ window.updateVideoUrl = async () => {
     alert("Video URL güncellendi!");
 };
 
-// Video senkronizasyonu
 function setupVideoSync() {
     if(videoSyncActive) return;
     videoSyncActive = true;
@@ -595,7 +436,7 @@ function setupVideoSync() {
         const s = snap.val();
         if (!s) return;
         if (myUser.role === 'admin') return;
-        if (!viewerPlayStarted) return;
+        if (!viewerStarted) return; // Başlatmadan senkron olma!
 
         if (Math.abs(video.currentTime - s.time) > 1) {
             video.currentTime = s.time;
@@ -621,15 +462,15 @@ function startApp() {
                 source.src = data.url;
                 video.load();
                 
-                // İzleyici için overlay göster
-                if(myUser.role !== 'admin' && !viewerPlayStarted) {
-                    document.getElementById("viewer-play-overlay").classList.add("visible");
+                // İzleyiciye başlat butonunu göster
+                if(myUser.role !== 'admin') {
+                    document.getElementById("viewer-start-btn").style.display = "flex";
                 }
             }
         }
     });
     
-    // Admin sonradan olursa diye senkronu hazır tut
+    // İzleyici için senkronu hazır tut
     if(myUser.role !== 'admin') {
         setupVideoSync();
     }
@@ -669,7 +510,7 @@ function startApp() {
         }
     });
     
-    // Kick kontrolü - DÜZELTİLMİŞ
+    // Kick kontrolü
     onValue(ref(db, "room1/users"), snap => {
         const list = document.getElementById("user-kick-list");
         list.innerHTML = "";
@@ -685,17 +526,13 @@ function startApp() {
                 const userData = u.val();
                 list.innerHTML += `
                     <div class="flex justify-between items-center bg-white/5 p-2 rounded-lg text-xs">
-                        <div class="flex items-center gap-2">
-                            <span>${userData.avatar}</span>
-                            <span>${userData.name}</span>
-                        </div>
+                        <div class="flex items-center gap-2"><span>${userData.avatar}</span><span>${userData.name}</span></div>
                         <button onclick="kickUser('${u.key}')" class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-[10px]">AT</button>
                     </div>
                 `;
             }
         });
         
-        // Sadece başka kullanıcı varsa ve ben yoksam = kick
         if(!userExists && userCount > 0 && !firstLoad) {
             alert("Odadan atıldınız!");
             location.reload();
@@ -744,23 +581,20 @@ window.tryAdmin = async () => {
             document.getElementById("admin-badge").classList.remove("hidden");
             document.getElementById("play-pause-btn").style.display = "flex";
             
-            // Video layer'ı admin moduna al (tıklamaya açık)
-            document.getElementById("video-touch-layer").classList.add("admin-mode");
+            // İzleyici butonunu gizle, admin butonunu göster
+            document.getElementById("viewer-start-btn").style.display = "none";
             
             const btn = document.getElementById("settings-btn");
             btn.textContent = "🏆";
             btn.classList.add("gold-glow", "gold");
             
-            // 🔥 KRİTİK: Admin sonradan olunca senkronu ZORLA
-            setupVideoSync();
+            // Admin senkronu da hazır tut (viewer'dan admin olma durumu)
+            if(!videoSyncActive) setupVideoSync();
             
-            // URL varsa göster
             const urlSnap = await get(ref(db, "room1/videoUrl"));
             if(urlSnap.exists()) {
                 document.getElementById("video-url-input").value = urlSnap.val().url || "";
             }
-            
-            console.log("Admin aktif. Senkron hazır.");
             
         } else {
             alert("Yanlış şifre!");
