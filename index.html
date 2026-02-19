@@ -231,6 +231,21 @@
             flex-direction: column;
             align-items: end;
         }
+
+        /* ADMIN İLK PLAY OVERLAY */
+        #admin-play-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: none; /* Başlangıçta gizli */
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        #admin-play-overlay.visible {
+            display: flex;
+        }
     </style>
 </head>
 <body>
@@ -259,6 +274,15 @@
         </video>
         
         <div id="video-touch-layer" class="absolute inset-0 z-40"></div>
+        
+        <!-- ADMIN İLK PLAY BUTONU -->
+        <div id="admin-play-overlay">
+            <button onclick="adminFirstPlay()" class="bg-yellow-400 text-black px-8 py-5 rounded-2xl font-bold text-xl shadow-lg hover:scale-105 transition flex items-center gap-3">
+                <span>▶</span>
+                <span>Videoyu Başlat</span>
+            </button>
+            <p class="absolute bottom-20 text-white/60 text-sm">Admin olarak video kontrolü için başlatın</p>
+        </div>
         
         <div class="video-controls">
             <button onclick="toggleOrientation()" class="control-btn" id="rotate-btn">
@@ -359,6 +383,7 @@ let isFullscreen = false;
 let emojiHideTimeout = null;
 let lastTap = 0;
 let adminListenersAdded = false;
+let adminPlayStarted = false; // İlk play yapıldı mı?
 
 const video = document.getElementById("main-video");
 const videoSection = document.getElementById("video-section");
@@ -398,7 +423,6 @@ emojis.forEach(e => {
     emDrawer.appendChild(b);
 });
 
-// EMOJI BUTONU YÖNETİMİ - DÜZELTİLMİŞ
 function showEmojiButton() {
     const btn = document.getElementById('emoji-toggle-btn');
     const drawer = document.getElementById('emoji-drawer');
@@ -408,7 +432,6 @@ function showEmojiButton() {
     if (isFullscreen) {
         clearTimeout(emojiHideTimeout);
         emojiHideTimeout = setTimeout(() => {
-            // DÜZELTME: !== kullan
             if (drawer.style.display !== 'grid') {
                 btn.classList.add('hidden-auto');
             }
@@ -416,23 +439,19 @@ function showEmojiButton() {
     }
 }
 
-// TEK CLICK LISTENER - Çift tık ve tek tık bir arada
 videoSection.addEventListener('click', (e) => {
-    // Butonlara tıklamayı ignore et
     if (
         e.target.closest('.control-btn') ||
         e.target.closest('#emoji-toggle-btn') ||
-        e.target.closest('#emoji-drawer')
+        e.target.closest('#emoji-drawer') ||
+        e.target.closest('#admin-play-overlay')
     ) return;
 
     const now = Date.now();
     
-    // Çift tık (300ms içinde ikinci tık)
     if (now - lastTap < 300) {
         toggleFullscreen();
-    } 
-    // Tek tık ve tam ekrandaysak emoji butonunu göster
-    else if (isFullscreen) {
+    } else if (isFullscreen) {
         showEmojiButton();
     }
     
@@ -445,9 +464,9 @@ window.toggleEmojiDrawer = () => {
     d.style.display = isOpen ? 'none' : 'grid';
     
     if(!isOpen) {
-        clearTimeout(emojiHideTimeout); // Açıkken gizleme
+        clearTimeout(emojiHideTimeout);
     } else if(isFullscreen) {
-        showEmojiButton(); // Kapatınca 5sn sonra gizle
+        showEmojiButton();
     }
 };
 
@@ -579,6 +598,49 @@ window.checkEntry = async () => {
     }
 };
 
+// ADMIN İLK PLAY - Mobil politika için gerekli
+window.adminFirstPlay = async () => {
+    try {
+        await video.play(); // GERÇEK kullanıcı tıklaması
+        adminPlayStarted = true;
+        
+        set(ref(db, "room1/video"), {
+            playing: true,
+            time: video.currentTime
+        });
+        
+        document.getElementById("admin-play-overlay").classList.remove("visible");
+        
+        // Artık normal admin event'lerini ekle
+        addAdminVideoListeners();
+        
+    } catch (e) {
+        alert("Tarayıcı oynatmayı engelledi: " + e.message);
+        console.log(e);
+    }
+};
+
+function addAdminVideoListeners() {
+    if(adminListenersAdded) return;
+    
+    video.addEventListener('play', () => {
+        if(!adminPlayStarted) return;
+        set(ref(db, "room1/video"), { playing: true, time: video.currentTime });
+    });
+
+    video.addEventListener('pause', () => {
+        if(!adminPlayStarted) return;
+        set(ref(db, "room1/video"), { playing: false, time: video.currentTime });
+    });
+
+    video.addEventListener('seeked', () => {
+        if(!adminPlayStarted) return;
+        set(ref(db, "room1/video"), { playing: !video.paused, time: video.currentTime });
+    });
+    
+    adminListenersAdded = true;
+}
+
 function startApp() {
     let firstLoad = true;
     
@@ -617,15 +679,11 @@ function startApp() {
         firstLoad = false;
     });
 
-    // VIDEO SENKRONİZASYONU - DÜZELTİLMİŞ
     onValue(ref(db, "room1/video"), snap => {
         const s = snap.val();
         if (!s) return;
-
-        // ADMIN: DB'den geleni uygulama, sadece kendi kontrolünü kullan
         if (myUser.role === 'admin') return;
 
-        // USER: DB'den geleni uygula
         if (Math.abs(video.currentTime - s.time) > 1) {
             video.currentTime = s.time;
         }
@@ -718,6 +776,24 @@ function showFullscreenToast(user, text, avatar) {
     }, 5000);
 }
 
+// EMOJI - DÜZELTİLMİŞ: Fullscreen element'e append et
+function triggerEmoji(icon) {
+    const el = document.createElement("div");
+    el.className = "emoji-fly";
+    el.textContent = icon;
+    el.style.left = Math.random() * 60 + 20 + "%";
+
+    if (isFullscreen) {
+        el.style.fontSize = "4rem";
+    }
+
+    // DÜZELTME: Fullscreen element varsa oraya, yoksa body'ye
+    const target = document.fullscreenElement || document.body;
+    target.appendChild(el);
+
+    setTimeout(() => el.remove(), 3000);
+}
+
 window.tryAdmin = async () => {
     const pass = document.getElementById("admin-pass-input").value;
     
@@ -735,37 +811,10 @@ window.tryAdmin = async () => {
             btn.textContent = "🏆";
             btn.classList.add("gold-glow", "gold");
             
-            // Admin video kontrollerini aktif et
-            video.controls = true;
-            video.style.pointerEvents = "auto";
+            // Admin overlay'i göster (ilk play için)
+            document.getElementById("admin-play-overlay").classList.add("visible");
             
-            // ADMIN EVENTLERİNİ EKLE (Sadece burada!)
-            if (!adminListenersAdded) {
-                video.addEventListener('play', () => {
-                    set(ref(db, "room1/video"), {
-                        playing: true,
-                        time: video.currentTime
-                    });
-                });
-
-                video.addEventListener('pause', () => {
-                    set(ref(db, "room1/video"), {
-                        playing: false,
-                        time: video.currentTime
-                    });
-                });
-
-                video.addEventListener('seeked', () => {
-                    set(ref(db, "room1/video"), {
-                        playing: !video.paused,
-                        time: video.currentTime
-                    });
-                });
-                
-                adminListenersAdded = true;
-            }
-            
-            console.log("Admin yetkisi aktif, video kontrolleri çalışıyor");
+            console.log("Admin yetkisi aktif. Lütfen videoyu başlatın.");
             
         } else {
             alert("Yanlış şifre!");
@@ -776,7 +825,10 @@ window.tryAdmin = async () => {
 };
 
 window.seek = (seconds) => {
-    if(myUser.role !== 'admin') return;
+    if(myUser.role !== 'admin' || !adminPlayStarted) {
+        if(!adminPlayStarted) alert("Önce videoyu başlatmalısınız!");
+        return;
+    }
     
     video.currentTime += seconds;
     set(ref(db, "room1/video"), { 
@@ -810,19 +862,6 @@ window.sendEmoji = (icon) => {
     });
     triggerEmoji(icon);
 };
-
-function triggerEmoji(icon) {
-    const el = document.createElement("div");
-    el.className = "emoji-fly";
-    el.textContent = icon;
-    el.style.left = Math.random() * 60 + 20 + "%";
-    if(isFullscreen) {
-        el.style.fontSize = "4rem";
-    }
-    document.body.appendChild(el);
-    
-    setTimeout(() => el.remove(), 3000);
-}
 
 window.showAdminModal = () => {
     const modal = document.getElementById("admin-modal");
