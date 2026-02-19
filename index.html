@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Birlikte İzleme | Pro V6</title>
+    <title>Birlikte İzleme | Pro V7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
@@ -13,7 +13,6 @@
         #video-section { height: 35vh; background: #000; position: relative; overflow: hidden; }
         #chat-section { height: 65vh; display: flex; flex-direction: column; position: relative; }
         
-        /* EMOJI BALONCUĞU GENİŞLETİLDİ - Sağa taşma sorunu çözüldü */
         #emoji-drawer { 
             display: none; 
             position: absolute; 
@@ -24,12 +23,11 @@
             gap: 10px; 
             padding: 16px; 
             border-radius: 16px; 
-            width: 260px; /* 200'den 260'a çıkarıldı */
+            width: 260px; 
             max-height: 320px;
             overflow-y: auto;
         }
         
-        /* Toast bildirimleri - sadece tam ekran için */
         .video-toast { 
             background: rgba(0, 0, 0, 0.7); 
             backdrop-filter: blur(8px); 
@@ -62,7 +60,6 @@
         .control-btn { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; }
         .control-btn:hover { background: rgba(0, 0, 0, 0.9); transform: scale(1.1); }
 
-        /* İZLEYİCİ BAŞLAT BUTONU - Yeşil */
         #viewer-start-btn { 
             background: rgba(34, 197, 94, 0.9); 
             border-color: rgba(34, 197, 94, 0.5);
@@ -76,7 +73,6 @@
         }
         #viewer-start-btn svg { fill: white; }
 
-        /* ADMIN PLAY/PAUSE - Sarı */
         #play-pause-btn { 
             background: rgba(255, 193, 7, 0.9); 
             border-color: rgba(255, 215, 0, 0.5); 
@@ -98,7 +94,6 @@
         #admin-seek-controls { display: none; gap: 6px; }
         #admin-seek-controls.visible { display: flex; }
 
-        /* Tam ekran toast container - sadece tam ekranda aktif */
         #fullscreen-toast-container { 
             position: fixed; 
             top: 20px; 
@@ -115,7 +110,6 @@
 
         .url-input { width: 100%; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; color: white; font-size: 12px; margin-bottom: 10px; }
         
-        /* Admin aktif/pasif göstergesi */
         #admin-status { 
             display: none;
             font-size: 10px; 
@@ -143,9 +137,7 @@
 <div id="app-screen" class="hidden flex flex-col h-screen">
     
     <div id="video-section">
-        <!-- Sadece tam ekran toast container -->
         <div id="fullscreen-toast-container"></div>
-        <!-- Normal mod toast container KALDIRILDI - sadece tam ekranda gösterilecek -->
         
         <button id="emoji-toggle-btn" onclick="toggleEmojiDrawer()">😊</button>
         <div id="emoji-drawer" class="glass"></div>
@@ -155,12 +147,10 @@
         </video>
         
         <div class="video-controls" id="video-controls">
-            <!-- İZLEYİCİ BAŞLAT (Tek kullanımlık) -->
             <button onclick="viewerStart()" class="control-btn" id="viewer-start-btn" title="Videoyu Başlat">
                 <svg viewBox="0 0 24 24" width="24" height="24"><path d="M8 5v14l11-7z" fill="white"/></svg>
             </button>
 
-            <!-- ADMIN PLAY/PAUSE -->
             <button onclick="togglePlayPause()" class="control-btn" id="play-pause-btn">
                 <svg viewBox="0 0 24 24" id="play-icon" width="24" height="24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
             </button>
@@ -258,8 +248,9 @@ let myUser = {
 let isFullscreen = false;
 let controlsHideTimeout = null;
 let lastTap = 0;
-let viewerStarted = false; // İzleyici başlattı mı?
+let viewerStarted = false;
 let videoSyncActive = false;
+let isAdmin = false; // Admin durumu için ayrı flag
 
 const video = document.getElementById("main-video");
 const videoSection = document.getElementById("video-section");
@@ -291,7 +282,6 @@ emojis.forEach(e => {
     emDrawer.appendChild(b);
 });
 
-// Kontrolleri göster/gizle
 function showControls() {
     const controls = document.getElementById('video-controls');
     const emojiBtn = document.getElementById('emoji-toggle-btn');
@@ -310,7 +300,6 @@ function showControls() {
     }
 }
 
-// Click handler
 videoSection.addEventListener('click', (e) => {
     if (e.target.closest('.control-btn') || e.target.closest('#emoji-toggle-btn') || e.target.closest('#emoji-drawer')) return;
     
@@ -331,30 +320,33 @@ window.toggleEmojiDrawer = () => {
     else if(isFullscreen) showControls();
 };
 
-// 🔥 İZLEYİCİ BAŞLAT - Tek kullanımlık ve senkron burada başlar!
+// 🔥 VIEWER START - s.playing kontrolü eklendi
 window.viewerStart = async () => {
-    if(viewerStarted) return; // Zaten başlatılmışsa çık
+    if(viewerStarted) return;
     
     const btn = document.getElementById('viewer-start-btn');
     
     try {
-        // Önce Firebase'den son durumu al
         const snap = await get(ref(db, "room1/video"));
         if(snap.exists()) {
             const s = snap.val();
             video.currentTime = s.time || 0;
+            
+            // 🔥 SADECE playing=true ise oynat
+            if(s.playing) {
+                await video.play();
+            } else {
+                video.pause();
+            }
         }
         
-        // Videoyu başlat
-        await video.play();
         video.muted = false;
-        
         viewerStarted = true;
-        btn.disabled = true; // Butonu pasif yap
+        btn.disabled = true;
         btn.style.opacity = "0.3";
         btn.title = "Zaten başlatıldı";
         
-        // 🔥 SENKRON SADECE BURADA BAŞLAR!
+        // Senkron başlat
         if(!videoSyncActive) setupVideoSync();
         
     } catch(e) {
@@ -363,7 +355,6 @@ window.viewerStart = async () => {
     }
 };
 
-// Admin play/pause
 window.togglePlayPause = async () => {
     if(myUser.role !== 'admin') return;
     try {
@@ -380,7 +371,6 @@ function updatePlayPauseIcon() {
         : '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" fill="currentColor"/>';
 }
 
-// Video event'leri
 video.addEventListener('play', () => {
     updatePlayPauseIcon();
     if(myUser.role === 'admin') {
@@ -477,8 +467,8 @@ window.checkEntry = async () => {
             });
             onDisconnect(userRef).remove();
             
-            // Admin durumunu kontrol et
-            checkAdminStatus();
+            // 🔥 Admin durumunu dinlemeye başla (girişte değil, sürekli)
+            listenAdminStatus();
             
             startApp();
         } else {
@@ -490,19 +480,22 @@ window.checkEntry = async () => {
     }
 };
 
-// Admin durumunu kontrol et (başkası admin mi?)
-async function checkAdminStatus() {
-    const adminSnap = await get(ref(db, "room1/admin"));
-    if(adminSnap.exists()) {
-        const adminId = adminSnap.val();
-        if(adminId !== myUser.id) {
-            document.getElementById("admin-status").classList.add("active");
-            document.getElementById("admin-status").textContent = "Admin Aktif";
+// 🔥 ADMIN DURUMUNU DİNLE (gerçek zamanlı)
+function listenAdminStatus() {
+    onValue(ref(db, "room1/admin"), snap => {
+        const adminId = snap.val();
+        const statusDiv = document.getElementById("admin-status");
+        
+        // Ben admin değilsem ve başka biri adminse göster
+        if(myUser.role !== 'admin' && adminId && adminId !== myUser.id) {
+            statusDiv.classList.add("active");
+            statusDiv.textContent = "Admin Aktif";
+        } else {
+            statusDiv.classList.remove("active");
         }
-    }
+    });
 }
 
-// 🔥 GOOGLE DRIVE URL GÜNCELLEME - export=view formatı ve reset
 window.updateVideoUrl = async () => {
     const urlInput = document.getElementById('video-url-input').value.trim();
     if(!urlInput) { alert("URL girin!"); return; }
@@ -518,10 +511,8 @@ window.updateVideoUrl = async () => {
     
     if(!videoId) { alert("Geçersiz Drive linki!"); return; }
     
-    // export=view formatı kullan (daha stabil) [^2^]
     const correctUrl = `https://drive.google.com/uc?export=view&id=${videoId}`;
     
-    // 🔥 VİDEO STATE RESETLE (ChatGPT tavsiyesi)
     await update(ref(db, "room1/video"), {
         playing: false,
         time: 0,
@@ -546,7 +537,7 @@ function setupVideoSync() {
         const s = snap.val();
         if (!s) return;
         if (myUser.role === 'admin') return;
-        if (!viewerStarted) return; // Başlatmadan senkron olma!
+        if (!viewerStarted) return;
 
         if (Math.abs(video.currentTime - s.time) > 1) {
             video.currentTime = s.time;
@@ -563,7 +554,6 @@ function setupVideoSync() {
 function startApp() {
     let firstLoad = true;
     
-    // Video URL dinle
     onValue(ref(db, "room1/videoUrl"), snap => {
         const data = snap.val();
         if(data && data.url) {
@@ -572,16 +562,13 @@ function startApp() {
                 source.src = data.url;
                 video.load();
                 
-                // 🔥 Video yüklendikten sonra admin otomatik play dene
                 if(myUser.role === 'admin') {
                     video.onloadeddata = () => {
                         video.play().catch(() => {});
                     };
                 }
                 
-                // İzleyiciye başlat butonunu göster
                 if(myUser.role !== 'admin') {
-                    // Önceki başlatma durumunu resetle
                     viewerStarted = false;
                     const btn = document.getElementById("viewer-start-btn");
                     btn.style.display = "flex";
@@ -593,11 +580,8 @@ function startApp() {
         }
     });
     
-    // 🔥 SENKRON SADECE VIEWERSTART'TA - startApp'den kaldırıldı!
-    // Admin için senkronu hazır tut (viewer'dan admin olma durumu)
-    if(myUser.role === 'admin' && !videoSyncActive) {
-        setupVideoSync();
-    }
+    // 🔥 ADMIN İÇİN SENKRON YOK - sadece viewer
+    // (Zaten setupVideoSync içinde return var ama admin hiç çağırmasın)
     
     onValue(ref(db, "room1/chat"), snap => {
         const box = document.getElementById("chat-messages");
@@ -620,8 +604,7 @@ function startApp() {
         });
         box.scrollTop = box.scrollHeight;
         
-        // 🔥 MESAJ BİLDİRİMİ SADECE TAM EKRANDA
-        if(!firstLoad && messages.length > 0 && isFullscreen) { // isFullscreen kontrolü eklendi
+        if(!firstLoad && messages.length > 0 && isFullscreen) {
             const lastMsg = messages[messages.length - 1][1];
             if(lastMsg && lastMsg.user !== myUser.name) showToast(lastMsg);
         }
@@ -635,7 +618,6 @@ function startApp() {
         }
     });
     
-    // Kick kontrolü ve admin durumu
     onValue(ref(db, "room1/users"), snap => {
         const list = document.getElementById("user-kick-list");
         list.innerHTML = "";
@@ -663,27 +645,10 @@ function startApp() {
             location.reload();
         }
     });
-    
-    // Admin değişikliğini dinle
-    onValue(ref(db, "room1/admin"), snap => {
-        const adminId = snap.val();
-        const statusDiv = document.getElementById("admin-status");
-        
-        if(adminId && adminId !== myUser.id) {
-            statusDiv.classList.add("active");
-            statusDiv.textContent = "Admin Aktif";
-        } else if(myUser.role === 'admin') {
-            statusDiv.classList.remove("active");
-        } else {
-            statusDiv.classList.add("active");
-            statusDiv.textContent = "Admin Yok";
-        }
-    });
 }
 
 function showToast(d) {
-    // 🔥 SADECE TAM EKRAN TOAST CONTAINER KULLAN (normal modda gösterme)
-    if(!isFullscreen) return; // Tam ekran değilse çık
+    if(!isFullscreen) return;
     
     const container = document.getElementById("fullscreen-toast-container");
     const t = document.createElement("div");
@@ -711,7 +676,7 @@ function triggerEmoji(icon) {
     setTimeout(() => el.remove(), 3000);
 }
 
-// 🔥 ADMIN TEK KİŞİ - DB'ye yazarak kontrol
+// 🔥 ADMIN TEK KİŞİ + onDisconnect
 window.tryAdmin = async () => {
     const pass = document.getElementById("admin-pass-input").value;
     
@@ -719,34 +684,39 @@ window.tryAdmin = async () => {
         const snap = await get(ref(db, "room1/adminPassword"));
         if(pass === String(snap.val())) {
             
-            // 🔥 ADMIN KONTROLÜ - Başkası admin mi?
             const adminRef = ref(db, "room1/admin");
             const adminSnap = await get(adminRef);
             
-            if(adminSnap.exists() && adminSnap.val() !== myUser.id) {
-                alert("Zaten bir admin aktif! Önceki admin çıkana kadar bekleyin.");
-                return;
+            // Başkası admin mi kontrol et
+            if(adminSnap.exists()) {
+                const existingAdmin = adminSnap.val();
+                if(existingAdmin !== myUser.id) {
+                    alert("Zaten bir admin aktif! Önceki admin çıkana kadar bekleyin.");
+                    return;
+                }
             }
             
-            // Admin olarak kaydet
+            // 🔥 ADMIN OL ve onDisconnect AYARLA
             await set(adminRef, myUser.id);
             
+            // 🔥 ÇIKINCA OTOMATİK SİL - BUNU EKLE
+            onDisconnect(adminRef).remove();
+            
             myUser.role = "admin";
+            isAdmin = true;
             
             document.getElementById("admin-login-view").classList.add("hidden");
             document.getElementById("admin-panel-view").classList.remove("hidden");
             document.getElementById("admin-seek-controls").classList.add("visible");
             document.getElementById("admin-badge").classList.remove("hidden");
             document.getElementById("play-pause-btn").style.display = "flex";
-            
-            // İzleyici butonunu gizle, admin butonunu göster
             document.getElementById("viewer-start-btn").style.display = "none";
             
             const btn = document.getElementById("settings-btn");
             btn.textContent = "🏆";
             btn.classList.add("gold-glow", "gold");
             
-            // Admin senkronu da hazır tut
+            // Admin senkronu gerekmez ama olsun (içinde return var)
             if(!videoSyncActive) setupVideoSync();
             
             const urlSnap = await get(ref(db, "room1/videoUrl"));
@@ -784,7 +754,8 @@ window.sendMessage = () => {
         timestamp: Date.now() 
     });
     inp.value = "";
-    inp.focus();
+    // 🔥 Mobilde klavye kapanmasın diye focus KALDIRILDI
+    // inp.focus(); 
 };
 
 window.sendEmoji = (icon) => {
@@ -799,7 +770,12 @@ window.sendEmoji = (icon) => {
 window.showAdminModal = () => {
     const modal = document.getElementById("admin-modal");
     modal.classList.remove("hidden");
-    if(myUser.role === 'admin') {
+    
+    // Admin değilsek login view göster
+    if(myUser.role !== 'admin') {
+        document.getElementById("admin-login-view").classList.remove("hidden");
+        document.getElementById("admin-panel-view").classList.add("hidden");
+    } else {
         document.getElementById("admin-login-view").classList.add("hidden");
         document.getElementById("admin-panel-view").classList.remove("hidden");
     }
@@ -807,7 +783,20 @@ window.showAdminModal = () => {
 
 window.closeAdminModal = () => document.getElementById("admin-modal").classList.add("hidden");
 window.resetChat = () => { if(confirm("Tüm mesajları sil?")) remove(ref(db, "room1/chat")); };
-window.kickUser = (uid) => { if(confirm("Kullanıcıyı at?")) remove(ref(db, "room1/users/" + uid)); };
+
+// 🔥 KICK - Eğer admini kicklerse adminliği düşür
+window.kickUser = async (uid) => { 
+    if(!confirm("Kullanıcıyı at?")) return;
+    
+    // Kicklenen admin mi?
+    const adminSnap = await get(ref(db, "room1/admin"));
+    if(adminSnap.exists() && adminSnap.val() === uid) {
+        await remove(ref(db, "room1/admin")); // Adminliği düşür
+    }
+    
+    remove(ref(db, "room1/users/" + uid)); 
+};
+
 window.handleInputFocus = handleInputFocus;
 window.handleInputBlur = handleInputBlur;
 </script>
