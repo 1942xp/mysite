@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Birlikte İzleme | Pro V7</title>
+    <title>Birlikte İzleme | Pro V7 - Cloudflare R2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
@@ -120,6 +120,16 @@
             border: 1px solid rgba(34, 197, 94, 0.3);
         }
         #admin-status.active { display: block; }
+
+        .r2-info { 
+            background: rgba(59, 130, 246, 0.1); 
+            border: 1px solid rgba(59, 130, 246, 0.3); 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin-bottom: 10px; 
+            font-size: 11px; 
+            color: #93c5fd; 
+        }
     </style>
 </head>
 <body>
@@ -206,16 +216,25 @@
         </div>
         <div id="admin-panel-view" class="hidden space-y-4">
             <h3 class="text-center font-bold text-yellow-500 mb-2">🏆 YÖNETİCİ PANELİ</h3>
+            
+            <!-- Cloudflare R2 Video URL -->
             <div class="border-t border-white/10 pt-3">
-                <p class="text-xs text-gray-400 mb-2 font-bold">🎬 VİDEO URL (Google Drive)</p>
-                <input type="text" id="video-url-input" placeholder="https://drive.google.com/file/d/ ..." class="url-input">
-                <button onclick="updateVideoUrl()" class="w-full bg-blue-600/20 text-blue-400 p-2 rounded-lg font-bold text-xs hover:bg-blue-600/30 transition border border-blue-500/20 mb-2">VİDEOYU YÜKLE</button>
+                <p class="text-xs text-gray-400 mb-2 font-bold">🎬 CLOUDFLARE R2 VIDEO URL</p>
+                <div class="r2-info">
+                    💡 Cloudflare R2'den aldığınız direkt video URL'sini yapıştırın.<br>
+                    Örnek: https://pub-xxx.r2.dev/video.mp4
+                </div>
+                <input type="text" id="video-url-input" placeholder="https://pub-xxx.r2.dev/film.mp4" class="url-input">
+                <button onclick="updateVideoUrl()" class="w-full bg-orange-600/20 text-orange-400 p-2 rounded-lg font-bold text-xs hover:bg-orange-600/30 transition border border-orange-500/20 mb-2">☁️ VİDEOYU YÜKLE (R2)</button>
             </div>
+            
             <button onclick="resetChat()" class="w-full bg-red-600/20 text-red-500 p-3 rounded-lg font-bold text-sm hover:bg-red-600/30 transition border border-red-500/20">🗑️ SOHBETİ TEMİZLE</button>
+            
             <div class="border-t border-white/10 pt-3">
                 <p class="text-xs text-gray-400 mb-2 font-bold">👥 AKTİF KULLANICILAR</p>
                 <div id="user-kick-list" class="max-h-48 overflow-y-auto space-y-1"></div>
             </div>
+            
             <button onclick="closeAdminModal()" class="w-full bg-white/5 p-3 rounded-lg text-xs hover:bg-white/10 transition mt-2">PANELİ KAPAT</button>
         </div>
     </div>
@@ -250,7 +269,7 @@ let controlsHideTimeout = null;
 let lastTap = 0;
 let viewerStarted = false;
 let videoSyncActive = false;
-let isAdmin = false; // Admin durumu için ayrı flag
+let isAdmin = false;
 
 const video = document.getElementById("main-video");
 const videoSection = document.getElementById("video-section");
@@ -320,7 +339,7 @@ window.toggleEmojiDrawer = () => {
     else if(isFullscreen) showControls();
 };
 
-// 🔥 VIEWER START - s.playing kontrolü eklendi
+// VIEWER START
 window.viewerStart = async () => {
     if(viewerStarted) return;
     
@@ -332,7 +351,6 @@ window.viewerStart = async () => {
             const s = snap.val();
             video.currentTime = s.time || 0;
             
-            // 🔥 SADECE playing=true ise oynat
             if(s.playing) {
                 await video.play();
             } else {
@@ -346,7 +364,6 @@ window.viewerStart = async () => {
         btn.style.opacity = "0.3";
         btn.title = "Zaten başlatıldı";
         
-        // Senkron başlat
         if(!videoSyncActive) setupVideoSync();
         
     } catch(e) {
@@ -467,9 +484,7 @@ window.checkEntry = async () => {
             });
             onDisconnect(userRef).remove();
             
-            // 🔥 Admin durumunu dinlemeye başla (girişte değil, sürekli)
             listenAdminStatus();
-            
             startApp();
         } else {
             alert("Şifre Hatalı!");
@@ -480,13 +495,11 @@ window.checkEntry = async () => {
     }
 };
 
-// 🔥 ADMIN DURUMUNU DİNLE (gerçek zamanlı)
 function listenAdminStatus() {
     onValue(ref(db, "room1/admin"), snap => {
         const adminId = snap.val();
         const statusDiv = document.getElementById("admin-status");
         
-        // Ben admin değilsem ve başka biri adminse göster
         if(myUser.role !== 'admin' && adminId && adminId !== myUser.id) {
             statusDiv.classList.add("active");
             statusDiv.textContent = "Admin Aktif";
@@ -496,37 +509,40 @@ function listenAdminStatus() {
     });
 }
 
+// 🔥 CLOUDFLARE R2 - DİREKT URL KULLANIMI (PARSE YOK)
 window.updateVideoUrl = async () => {
     const urlInput = document.getElementById('video-url-input').value.trim();
-    if(!urlInput) { alert("URL girin!"); return; }
     
-    let videoId = "";
-    if(urlInput.includes('/file/d/')) {
-        const match = urlInput.match(/\/file\/d\/([^\/\?]+)/);
-        if(match) videoId = match[1];
-    } else if(urlInput.includes('open?id=')) {
-        const match = urlInput.match(/open\?id=([^&]+)/);
-        if(match) videoId = match[1];
+    if(!urlInput) { 
+        alert("Cloudflare R2 URL girin!"); 
+        return; 
     }
     
-    if(!videoId) { alert("Geçersiz Drive linki!"); return; }
+    // Basit URL validasyonu
+    if(!urlInput.startsWith('http')) {
+        alert("Geçerli bir URL girin! (http:// veya https:// ile başlamalı)");
+        return;
+    }
     
-    const correctUrl = `https://drive.google.com/uc?export=view&id=${videoId}`;
+    // Direkt URL'yi kullan - parse yok, değiştirme yok
+    const directUrl = urlInput;
     
+    // Videoyu sıfırla
     await update(ref(db, "room1/video"), {
         playing: false,
         time: 0,
         updatedAt: Date.now()
     });
     
+    // R2 URL'sini kaydet
     await update(ref(db, "room1/videoUrl"), {
-        url: correctUrl,
-        id: videoId,
+        url: directUrl,  // Olduğu gibi kaydet
+        source: "cloudflare-r2",  // Kaynak bilgisi eklendi
         updatedBy: myUser.name,
         updatedAt: Date.now()
     });
     
-    alert("Video URL güncellendi! İzleyiciler yeniden başlatmalı.");
+    alert("✅ Cloudflare R2 video yüklendi! İzleyiciler 'Başlat' butonuna basabilir.");
 };
 
 function setupVideoSync() {
@@ -558,16 +574,20 @@ function startApp() {
         const data = snap.val();
         if(data && data.url) {
             const source = video.querySelector('source');
+            
+            // URL değiştiyse güncelle
             if(source.src !== data.url) {
                 source.src = data.url;
                 video.load();
                 
+                // Admin için otomatik oynat
                 if(myUser.role === 'admin') {
                     video.onloadeddata = () => {
                         video.play().catch(() => {});
                     };
                 }
                 
+                // Viewer için başlat butonu göster
                 if(myUser.role !== 'admin') {
                     viewerStarted = false;
                     const btn = document.getElementById("viewer-start-btn");
@@ -576,12 +596,14 @@ function startApp() {
                     btn.style.opacity = "1";
                     btn.title = "Videoyu Başlat";
                 }
+                
+                // Input alanını güncelle (admin panelde gözüksün diye)
+                if(myUser.role === 'admin') {
+                    document.getElementById("video-url-input").value = data.url;
+                }
             }
         }
     });
-    
-    // 🔥 ADMIN İÇİN SENKRON YOK - sadece viewer
-    // (Zaten setupVideoSync içinde return var ama admin hiç çağırmasın)
     
     onValue(ref(db, "room1/chat"), snap => {
         const box = document.getElementById("chat-messages");
@@ -676,7 +698,6 @@ function triggerEmoji(icon) {
     setTimeout(() => el.remove(), 3000);
 }
 
-// 🔥 ADMIN TEK KİŞİ + onDisconnect
 window.tryAdmin = async () => {
     const pass = document.getElementById("admin-pass-input").value;
     
@@ -687,7 +708,6 @@ window.tryAdmin = async () => {
             const adminRef = ref(db, "room1/admin");
             const adminSnap = await get(adminRef);
             
-            // Başkası admin mi kontrol et
             if(adminSnap.exists()) {
                 const existingAdmin = adminSnap.val();
                 if(existingAdmin !== myUser.id) {
@@ -696,10 +716,7 @@ window.tryAdmin = async () => {
                 }
             }
             
-            // 🔥 ADMIN OL ve onDisconnect AYARLA
             await set(adminRef, myUser.id);
-            
-            // 🔥 ÇIKINCA OTOMATİK SİL - BUNU EKLE
             onDisconnect(adminRef).remove();
             
             myUser.role = "admin";
@@ -716,9 +733,9 @@ window.tryAdmin = async () => {
             btn.textContent = "🏆";
             btn.classList.add("gold-glow", "gold");
             
-            // Admin senkronu gerekmez ama olsun (içinde return var)
             if(!videoSyncActive) setupVideoSync();
             
+            // Mevcut R2 URL'sini input'a yükle
             const urlSnap = await get(ref(db, "room1/videoUrl"));
             if(urlSnap.exists()) {
                 document.getElementById("video-url-input").value = urlSnap.val().url || "";
@@ -754,8 +771,6 @@ window.sendMessage = () => {
         timestamp: Date.now() 
     });
     inp.value = "";
-    // 🔥 Mobilde klavye kapanmasın diye focus KALDIRILDI
-    // inp.focus(); 
 };
 
 window.sendEmoji = (icon) => {
@@ -771,7 +786,6 @@ window.showAdminModal = () => {
     const modal = document.getElementById("admin-modal");
     modal.classList.remove("hidden");
     
-    // Admin değilsek login view göster
     if(myUser.role !== 'admin') {
         document.getElementById("admin-login-view").classList.remove("hidden");
         document.getElementById("admin-panel-view").classList.add("hidden");
@@ -784,14 +798,12 @@ window.showAdminModal = () => {
 window.closeAdminModal = () => document.getElementById("admin-modal").classList.add("hidden");
 window.resetChat = () => { if(confirm("Tüm mesajları sil?")) remove(ref(db, "room1/chat")); };
 
-// 🔥 KICK - Eğer admini kicklerse adminliği düşür
 window.kickUser = async (uid) => { 
     if(!confirm("Kullanıcıyı at?")) return;
     
-    // Kicklenen admin mi?
     const adminSnap = await get(ref(db, "room1/admin"));
     if(adminSnap.exists() && adminSnap.val() === uid) {
-        await remove(ref(db, "room1/admin")); // Adminliği düşür
+        await remove(ref(db, "room1/admin"));
     }
     
     remove(ref(db, "room1/users/" + uid)); 
