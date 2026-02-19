@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Birlikte İzleme | Pro V7 - Cloudflare R2</title>
+    <title>Birlikte İzleme | PixelDrain V8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
@@ -28,6 +28,42 @@
             overflow-y: auto;
         }
         
+        .video-status-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.9);
+            z-index: 30;
+            transition: opacity 0.3s;
+        }
+        
+        .video-status-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .status-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .retry-pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         .video-toast { 
             background: rgba(0, 0, 0, 0.7); 
             backdrop-filter: blur(8px); 
@@ -80,6 +116,13 @@
         }
         #play-pause-btn:hover { background: rgba(255, 193, 7, 1); }
         #play-pause-btn svg { fill: #000; }
+        
+        #sync-btn {
+            background: rgba(59, 130, 246, 0.9);
+            border-color: rgba(59, 130, 246, 0.5);
+            display: none;
+        }
+        #sync-btn:hover { background: rgba(59, 130, 246, 1); }
 
         #emoji-toggle-btn { position: absolute; top: 15px; left: 15px; z-index: 210; background: rgba(0, 0, 0, 0.6); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; font-size: 22px; transition: opacity 0.3s; }
         #emoji-toggle-btn.hidden-auto { opacity: 0; pointer-events: none; }
@@ -121,14 +164,48 @@
         }
         #admin-status.active { display: block; }
 
-        .r2-info { 
-            background: rgba(59, 130, 246, 0.1); 
-            border: 1px solid rgba(59, 130, 246, 0.3); 
+        .pixeldrain-info { 
+            background: rgba(168, 85, 247, 0.1); 
+            border: 1px solid rgba(168, 85, 247, 0.3); 
             padding: 10px; 
             border-radius: 8px; 
             margin-bottom: 10px; 
             font-size: 11px; 
-            color: #93c5fd; 
+            color: #c4b5fd; 
+        }
+        
+        .admin-status-box {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .admin-status-box.loading {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            color: #60a5fa;
+        }
+        
+        .admin-status-box.ready {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.5);
+            color: #4ade80;
+        }
+        
+        .admin-status-box.error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #f87171;
+        }
+        
+        .admin-status-box.empty {
+            background: rgba(107, 114, 128, 0.2);
+            border: 1px solid rgba(107, 114, 128, 0.5);
+            color: #9ca3af;
         }
     </style>
 </head>
@@ -149,6 +226,19 @@
     <div id="video-section">
         <div id="fullscreen-toast-container"></div>
         
+        <!-- Video Durum Overlay -->
+        <div id="video-status-overlay" class="video-status-overlay">
+            <div class="text-center px-4">
+                <div id="status-icon" class="text-4xl mb-3">⏳</div>
+                <div id="status-spinner" class="status-spinner mx-auto mb-3 hidden"></div>
+                <p id="status-text" class="text-sm text-gray-300 font-semibold mb-1">Admin bekleniyor...</p>
+                <p id="status-sub" class="text-xs text-gray-500">Video henüz yüklenmedi</p>
+                <button id="retry-btn" onclick="manualRetry()" class="mt-4 px-4 py-2 bg-blue-600/20 text-blue-400 rounded-lg text-xs font-bold border border-blue-500/30 hidden hover:bg-blue-600/30 transition">
+                    🔄 Yeniden Dene
+                </button>
+            </div>
+        </div>
+        
         <button id="emoji-toggle-btn" onclick="toggleEmojiDrawer()">😊</button>
         <div id="emoji-drawer" class="glass"></div>
 
@@ -163,6 +253,10 @@
 
             <button onclick="togglePlayPause()" class="control-btn" id="play-pause-btn">
                 <svg viewBox="0 0 24 24" id="play-icon" width="24" height="24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+            </button>
+            
+            <button onclick="syncWithAdmin()" class="control-btn" id="sync-btn" title="Admin ile Senkronize Et">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
             </button>
 
             <button onclick="toggleOrientation()" class="control-btn" title="Ekranı Çevir">
@@ -217,15 +311,25 @@
         <div id="admin-panel-view" class="hidden space-y-4">
             <h3 class="text-center font-bold text-yellow-500 mb-2">🏆 YÖNETİCİ PANELİ</h3>
             
-            <!-- Cloudflare R2 Video URL -->
+            <!-- Admin Video Durum Göstergesi -->
+            <div id="admin-video-status" class="admin-status-box empty">
+                ⏳ Video bekleniyor...
+            </div>
+            
+            <!-- PixelDrain Video URL -->
             <div class="border-t border-white/10 pt-3">
-                <p class="text-xs text-gray-400 mb-2 font-bold">🎬 CLOUDFLARE R2 VIDEO URL</p>
-                <div class="r2-info">
-                    💡 Cloudflare R2'den aldığınız direkt video URL'sini yapıştırın.<br>
-                    Örnek: https://pub-xxx.r2.dev/video.mp4
+                <p class="text-xs text-gray-400 mb-2 font-bold">🎬 PIXELDRAIN VIDEO URL</p>
+                <div class="pixeldrain-info">
+                    💡 <strong>pixeldrain.com/u/xxxx</strong> veya <strong>pixeldrain.com/api/file/xxxx</strong><br>
+                    Otomatik çevrilir, direkt MP4 kullanılır.
                 </div>
-                <input type="text" id="video-url-input" placeholder="https://pub-xxx.r2.dev/film.mp4" class="url-input">
-                <button onclick="updateVideoUrl()" class="w-full bg-orange-600/20 text-orange-400 p-2 rounded-lg font-bold text-xs hover:bg-orange-600/30 transition border border-orange-500/20 mb-2">☁️ VİDEOYU YÜKLE (R2)</button>
+                <input type="text" id="video-url-input" placeholder="https://pixeldrain.com/u/xTN9pWNj" class="url-input">
+                <button onclick="updateVideoUrl()" class="w-full bg-purple-600/20 text-purple-400 p-2 rounded-lg font-bold text-xs hover:bg-purple-600/30 transition border border-purple-500/20 mb-2">
+                    ☁️ VİDEOYU YÜKLE
+                </button>
+                <button onclick="forceStartVideo()" id="force-start-btn" class="w-full bg-green-600/20 text-green-400 p-2 rounded-lg font-bold text-xs hover:bg-green-600/30 transition border border-green-500/20 hidden">
+                    ▶️ VİDEOYU BAŞLAT
+                </button>
             </div>
             
             <button onclick="resetChat()" class="w-full bg-red-600/20 text-red-500 p-3 rounded-lg font-bold text-sm hover:bg-red-600/30 transition border border-red-500/20">🗑️ SOHBETİ TEMİZLE</button>
@@ -270,11 +374,41 @@ let lastTap = 0;
 let viewerStarted = false;
 let videoSyncActive = false;
 let isAdmin = false;
+let currentVideoUrl = null;
+let retryInterval = null;
 
 const video = document.getElementById("main-video");
 const videoSection = document.getElementById("video-section");
 const avatars = ["🐱","🐶","🦊","🦁","🐸","🤖","🦄","🐧","🐼","🐨","🐙","👻","🐵","🐥","🐝","🦖","🥨","🍕","🎈","🍔","🍦","🚀","🎸","🎮","👑","🧿","🍀","🔥","💎","🌈"];
 const emojis = ['😘','😂','🔥','❤️','😮','👏','💀','💯','🎉','👀','✨','🙌'];
+
+// PixelDrain URL dönüştürme
+function convertPixelDrainUrl(url) {
+    if (!url) return null;
+    
+    // Temizle
+    url = url.trim();
+    
+    // Zaten API formatında mı?
+    if (url.includes('/api/file/')) {
+        return url;
+    }
+    
+    // /u/ formatını /api/file/'a çevir
+    if (url.includes('/u/')) {
+        const fileId = url.split('/u/')[1]?.split('?')[0]?.split('#')[0];
+        if (fileId) {
+            return `https://pixeldrain.com/api/file/${fileId}`;
+        }
+    }
+    
+    // Sadece ID verilmişse
+    if (/^[a-zA-Z0-9]+$/.test(url)) {
+        return `https://pixeldrain.com/api/file/${url}`;
+    }
+    
+    return url; // Başka bir URL ise olduğu gibi döndür
+}
 
 // Karakter seçimi
 const avList = document.getElementById("avatar-list");
@@ -283,7 +417,7 @@ avatars.forEach((a, index) => {
     d.className = "text-2xl p-2 cursor-pointer rounded-xl hover:bg-white/10 transition border border-transparent";
     d.textContent = a;
     d.onclick = () => {
-        document.querySelectorAll("#avatar-list div").forEach(el => el.classList.remove('bg-blue-600', 'border-blue-400'));
+        document.querySelectorAll("#avatar-list div").forEach(el => el.classList.remove('bg-blue-600', 'border-blue-4ff00'));
         d.classList.add('bg-blue-600', 'border-blue-400');
         myUser.avatar = a;
     };
@@ -320,7 +454,7 @@ function showControls() {
 }
 
 videoSection.addEventListener('click', (e) => {
-    if (e.target.closest('.control-btn') || e.target.closest('#emoji-toggle-btn') || e.target.closest('#emoji-drawer')) return;
+    if (e.target.closest('.control-btn') || e.target.closest('#emoji-toggle-btn') || e.target.closest('#emoji-drawer') || e.target.closest('#video-status-overlay')) return;
     
     const now = Date.now();
     if (now - lastTap < 300) {
@@ -339,6 +473,68 @@ window.toggleEmojiDrawer = () => {
     else if(isFullscreen) showControls();
 };
 
+// Video durum overlay güncelleme
+function updateVideoStatusOverlay(state, message, subMessage, showRetry = false) {
+    const overlay = document.getElementById('video-status-overlay');
+    const icon = document.getElementById('status-icon');
+    const spinner = document.getElementById('status-spinner');
+    const text = document.getElementById('status-text');
+    const sub = document.getElementById('status-sub');
+    const retryBtn = document.getElementById('retry-btn');
+    
+    text.textContent = message;
+    sub.textContent = subMessage || '';
+    retryBtn.classList.toggle('hidden', !showRetry);
+    
+    switch(state) {
+        case 'empty':
+            icon.textContent = '⏳';
+            icon.classList.remove('hidden');
+            spinner.classList.add('hidden');
+            overlay.classList.remove('hidden');
+            break;
+        case 'loading':
+            icon.classList.add('hidden');
+            spinner.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            break;
+        case 'ready':
+            icon.textContent = '✅';
+            icon.classList.remove('hidden');
+            spinner.classList.add('hidden');
+            // Admin için overlay'i gizle, izleyici için göster
+            if (myUser.role === 'admin') {
+                overlay.classList.add('hidden');
+            } else {
+                overlay.classList.remove('hidden');
+            }
+            break;
+        case 'error':
+            icon.textContent = '❌';
+            icon.classList.remove('hidden');
+            spinner.classList.add('hidden');
+            overlay.classList.remove('hidden');
+            break;
+        case 'playing':
+            overlay.classList.add('hidden');
+            break;
+    }
+}
+
+// Admin panel durum güncelleme
+function updateAdminStatus(state, message) {
+    const box = document.getElementById('admin-video-status');
+    if (!box) return;
+    
+    box.className = 'admin-status-box ' + state;
+    box.textContent = message;
+    
+    const forceStartBtn = document.getElementById('force-start-btn');
+    if (forceStartBtn) {
+        forceStartBtn.classList.toggle('hidden', state !== 'ready');
+    }
+}
+
 // VIEWER START
 window.viewerStart = async () => {
     if(viewerStarted) return;
@@ -353,6 +549,7 @@ window.viewerStart = async () => {
             
             if(s.playing) {
                 await video.play();
+                updateVideoStatusOverlay('playing', '', '');
             } else {
                 video.pause();
             }
@@ -396,6 +593,11 @@ video.addEventListener('play', () => {
             time: video.currentTime, 
             updatedAt: Date.now() 
         });
+        update(ref(db, "room1/videoStatus"), {
+            state: 'playing',
+            message: 'Video oynuyor',
+            updatedAt: Date.now()
+        });
     }
 });
 
@@ -419,6 +621,85 @@ video.addEventListener('seeked', () => {
         });
     }
 });
+
+video.addEventListener('error', (e) => {
+    console.error("Video error:", e);
+    if (myUser.role !== 'admin') {
+        updateVideoStatusOverlay('error', 'Video yüklenemedi', 'Tekrar deneniyor...', true);
+        startAutoRetry();
+    }
+});
+
+video.addEventListener('loadeddata', () => {
+    console.log("Video loaded successfully");
+    if (myUser.role === 'admin') {
+        updateAdminStatus('ready', '✅ Video hazır! Başlatabilirsiniz');
+        update(ref(db, "room1/videoStatus"), {
+            state: 'ready',
+            message: 'Video hazır! Başlatma bekleniyor...',
+            retryCount: 0,
+            loadedAt: Date.now(),
+            updatedAt: Date.now()
+        });
+    }
+});
+
+// Otomatik retry mekanizması
+function startAutoRetry() {
+    if (retryInterval) return;
+    
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    retryInterval = setInterval(async () => {
+        attempts++;
+        if (attempts > maxAttempts) {
+            clearInterval(retryInterval);
+            retryInterval = null;
+            updateVideoStatusOverlay('error', 'Video yüklenemedi', 'Lütfen sayfayı yenileyin', true);
+            return;
+        }
+        
+        // Video yeniden yükle
+        video.load();
+        updateVideoStatusOverlay('loading', 'Tekrar deneniyor...', `Deneme ${attempts}/${maxAttempts}`);
+        
+    }, 5000);
+}
+
+window.manualRetry = () => {
+    if (retryInterval) {
+        clearInterval(retryInterval);
+        retryInterval = null;
+    }
+    video.load();
+    updateVideoStatusOverlay('loading', 'Yeniden yükleniyor...', 'Lütfen bekleyin');
+};
+
+window.syncWithAdmin = async () => {
+    try {
+        const videoSnap = await get(ref(db, "room1/video"));
+        const statusSnap = await get(ref(db, "room1/videoStatus"));
+        
+        if (videoSnap.exists() && statusSnap.exists()) {
+            const videoData = videoSnap.val();
+            const statusData = statusSnap.val();
+            
+            if (statusData.state === 'playing') {
+                video.currentTime = videoData.time || 0;
+                if (videoData.playing) {
+                    await video.play();
+                    updateVideoStatusOverlay('playing', '', '');
+                }
+                viewerStarted = true;
+                document.getElementById('viewer-start-btn').style.display = 'none';
+                document.getElementById('sync-btn').style.display = 'none';
+            }
+        }
+    } catch (e) {
+        console.error("Sync error:", e);
+    }
+};
 
 window.toggleFullscreen = async () => {
     if (!document.fullscreenElement) {
@@ -509,40 +790,104 @@ function listenAdminStatus() {
     });
 }
 
-// 🔥 CLOUDFLARE R2 - DİREKT URL KULLANIMI (PARSE YOK)
+// PIXELDRAIN URL GÜNCELLEME
 window.updateVideoUrl = async () => {
     const urlInput = document.getElementById('video-url-input').value.trim();
     
     if(!urlInput) { 
-        alert("Cloudflare R2 URL girin!"); 
+        alert("PixelDrain URL girin!"); 
         return; 
     }
     
-    // Basit URL validasyonu
-    if(!urlInput.startsWith('http')) {
-        alert("Geçerli bir URL girin! (http:// veya https:// ile başlamalı)");
-        return;
-    }
+    // URL'yi dönüştür
+    const apiUrl = convertPixelDrainUrl(urlInput);
+    const displayUrl = urlInput.includes('/api/file/') 
+        ? urlInput.replace('/api/file/', '/u/') 
+        : urlInput;
     
-    // Direkt URL'yi kullan - parse yok, değiştirme yok
-    const directUrl = urlInput;
+    console.log("Original:", urlInput);
+    console.log("Converted:", apiUrl);
     
-    // Videoyu sıfırla
+    // Yükleme durumunu ayarla
+    updateAdminStatus('loading', '🔄 Video yükleniyor... Lütfen bekleyin');
+    
+    await update(ref(db, "room1/videoStatus"), {
+        state: 'loading',
+        currentUrl: apiUrl,
+        displayUrl: displayUrl,
+        originalUrl: urlInput,
+        message: 'Yeni videoya geçiliyor...',
+        retryCount: 0,
+        errorDetail: null,
+        updatedBy: myUser.name,
+        updatedAt: Date.now()
+    });
+    
+    // Video durumunu sıfırla
     await update(ref(db, "room1/video"), {
         playing: false,
         time: 0,
         updatedAt: Date.now()
     });
     
-    // R2 URL'sini kaydet
-    await update(ref(db, "room1/videoUrl"), {
-        url: directUrl,  // Olduğu gibi kaydet
-        source: "cloudflare-r2",  // Kaynak bilgisi eklendi
-        updatedBy: myUser.name,
-        updatedAt: Date.now()
-    });
+    // Video elementini güncelle ve yükle
+    const source = video.querySelector('source');
+    source.src = apiUrl;
+    video.load();
     
-    alert("✅ Cloudflare R2 video yüklendi! İzleyiciler 'Başlat' butonuna basabilir.");
+    // Yükleme kontrolü
+    let loadTimeout = setTimeout(() => {
+        updateAdminStatus('error', '❌ Video yüklenemedi (Timeout)');
+        update(ref(db, "room1/videoStatus"), {
+            state: 'error',
+            message: 'Video yüklenemedi',
+            errorDetail: 'Yükleme zaman aşımına uğradı',
+            updatedAt: Date.now()
+        });
+    }, 30000);
+    
+    video.onloadeddata = () => {
+        clearTimeout(loadTimeout);
+        updateAdminStatus('ready', '✅ Video hazır! Başlatabilirsiniz');
+        update(ref(db, "room1/videoStatus"), {
+            state: 'ready',
+            message: 'Video hazır! Başlatma bekleniyor...',
+            loadedAt: Date.now(),
+            updatedAt: Date.now()
+        });
+    };
+    
+    video.onerror = () => {
+        clearTimeout(loadTimeout);
+        updateAdminStatus('error', '❌ Video yüklenemedi (Hata)');
+        update(ref(db, "room1/videoStatus"), {
+            state: 'error',
+            message: 'Video yüklenemedi',
+            errorDetail: 'Video dosyasına erişilemiyor',
+            updatedAt: Date.now()
+        });
+    };
+};
+
+window.forceStartVideo = async () => {
+    if (myUser.role !== 'admin') return;
+    
+    try {
+        await video.play();
+        update(ref(db, "room1/video"), {
+            playing: true,
+            time: video.currentTime,
+            updatedAt: Date.now()
+        });
+        update(ref(db, "room1/videoStatus"), {
+            state: 'playing',
+            message: 'Video oynuyor',
+            updatedAt: Date.now()
+        });
+    } catch (e) {
+        console.error("Force start error:", e);
+        alert("Video başlatılamadı: " + e.message);
+    }
 };
 
 function setupVideoSync() {
@@ -570,37 +915,74 @@ function setupVideoSync() {
 function startApp() {
     let firstLoad = true;
     
-    onValue(ref(db, "room1/videoUrl"), snap => {
-        const data = snap.val();
-        if(data && data.url) {
-            const source = video.querySelector('source');
-            
-            // URL değiştiyse güncelle
-            if(source.src !== data.url) {
-                source.src = data.url;
-                video.load();
-                
-                // Admin için otomatik oynat
-                if(myUser.role === 'admin') {
-                    video.onloadeddata = () => {
-                        video.play().catch(() => {});
-                    };
-                }
-                
-                // Viewer için başlat butonu göster
-                if(myUser.role !== 'admin') {
+    // Video durumunu dinle
+    onValue(ref(db, "room1/videoStatus"), snap => {
+        const status = snap.val();
+        if (!status) {
+            updateVideoStatusOverlay('empty', 'Admin bekleniyor...', 'Video henüz yüklenmedi');
+            return;
+        }
+        
+        currentVideoUrl = status.currentUrl;
+        
+        switch(status.state) {
+            case 'empty':
+                updateVideoStatusOverlay('empty', 'Admin bekleniyor...', 'Video henüz yüklenmedi');
+                break;
+            case 'loading':
+                updateVideoStatusOverlay('loading', 'Yeni videoya geçiliyor...', 'Lütfen bekleyin');
+                // Yeni video yükleniyorsa viewer'ı sıfırla
+                if (myUser.role !== 'admin') {
                     viewerStarted = false;
-                    const btn = document.getElementById("viewer-start-btn");
-                    btn.style.display = "flex";
-                    btn.disabled = false;
-                    btn.style.opacity = "1";
-                    btn.title = "Videoyu Başlat";
+                    document.getElementById('viewer-start-btn').style.display = 'none';
+                    document.getElementById('sync-btn').style.display = 'none';
                 }
-                
-                // Input alanını güncelle (admin panelde gözüksün diye)
-                if(myUser.role === 'admin') {
-                    document.getElementById("video-url-input").value = data.url;
+                break;
+            case 'ready':
+                if (myUser.role === 'admin') {
+                    updateVideoStatusOverlay('ready', '', '');
+                } else {
+                    updateVideoStatusOverlay('ready', '✅ Video hazır!', 'Admin başlatmayı bekleniyor...');
+                    document.getElementById('viewer-start-btn').style.display = 'flex';
+                    document.getElementById('sync-btn').style.display = 'flex';
                 }
+                break;
+            case 'playing':
+                if (myUser.role !== 'admin') {
+                    updateVideoStatusOverlay('playing', '', '');
+                    document.getElementById('viewer-start-btn').style.display = 'flex';
+                    document.getElementById('sync-btn').style.display = 'flex';
+                }
+                break;
+            case 'error':
+                updateVideoStatusOverlay('error', 'Video yüklenemedi', status.errorDetail || 'Tekrar deneniyor...', true);
+                if (!retryInterval) startAutoRetry();
+                break;
+        }
+        
+        // Admin panelini güncelle
+        if (myUser.role === 'admin') {
+            updateAdminStatus(status.state, getStatusMessage(status.state));
+            if (status.currentUrl) {
+                document.getElementById('video-url-input').value = status.displayUrl || status.originalUrl || '';
+            }
+        }
+    });
+    
+    // Video URL değişimini dinle
+    onValue(ref(db, "room1/videoStatus/currentUrl"), snap => {
+        const url = snap.val();
+        if (!url) return;
+        
+        const source = video.querySelector('source');
+        if (source.src !== url) {
+            source.src = url;
+            video.load();
+            
+            if (myUser.role === 'admin') {
+                video.onloadeddata = () => {
+                    updateAdminStatus('ready', '✅ Video hazır! Başlatabilirsiniz');
+                };
             }
         }
     });
@@ -669,6 +1051,17 @@ function startApp() {
     });
 }
 
+function getStatusMessage(state) {
+    switch(state) {
+        case 'empty': return '⏳ Video bekleniyor...';
+        case 'loading': return '🔄 Video yükleniyor...';
+        case 'ready': return '✅ Video hazır! Başlatabilirsiniz';
+        case 'playing': return '▶️ Video oynuyor';
+        case 'error': return '❌ Video yüklenemedi';
+        default: return 'Bilinmeyen durum';
+    }
+}
+
 function showToast(d) {
     if(!isFullscreen) return;
     
@@ -735,10 +1128,15 @@ window.tryAdmin = async () => {
             
             if(!videoSyncActive) setupVideoSync();
             
-            // Mevcut R2 URL'sini input'a yükle
-            const urlSnap = await get(ref(db, "room1/videoUrl"));
-            if(urlSnap.exists()) {
-                document.getElementById("video-url-input").value = urlSnap.val().url || "";
+            const statusSnap = await get(ref(db, "room1/videoStatus"));
+            if(statusSnap.exists()) {
+                const status = statusSnap.val();
+                updateAdminStatus(status.state || 'empty', getStatusMessage(status.state || 'empty'));
+                if(status.displayUrl || status.originalUrl) {
+                    document.getElementById("video-url-input").value = status.displayUrl || status.originalUrl;
+                }
+            } else {
+                updateAdminStatus('empty', '⏳ Video bekleniyor...');
             }
             
         } else {
